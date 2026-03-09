@@ -115,8 +115,8 @@ input:focus { border-color:#2e86c1; }
     <video id="camvid" autoplay playsinline muted></video>
     <div class="scanline"></div>
   </div>
-  <p class="scanlabel">Point at QR Code</p>
-  <p class="scancount" id="scancount">Camera open — scan multiple!</p>
+  <p class="scanlabel">Hold steady — point at QR Code</p>
+  <p class="scancount" id="scancount">Keep QR code inside the green box</p>
   <button class="donebtn" onclick="stopScan()">✅ Done Scanning</button>
 </div>
 
@@ -255,7 +255,7 @@ function startScan() {
     return;
   }
   smsg('Requesting camera permission...', 'ok');
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } })
     .then(function(s) {
       stream = s;
       var vid = g('camvid');
@@ -277,11 +277,11 @@ function startScan() {
 function doScan() {
   if (!scanning) return;
   var v = g('camvid');
-  if (v.readyState === 4) {
+  if (v.readyState === v.HAVE_ENOUGH_DATA && v.videoWidth > 0) {
     if (cvs.width !== v.videoWidth) { cvs.width = v.videoWidth; cvs.height = v.videoHeight; }
     ctx.drawImage(v, 0, 0);
     var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
-    var c = jsQR(d.data, d.width, d.height);
+    var c = jsQR(d.data, d.width, d.height, { inversionAttempts: 'attemptBoth' });
     if (c) {
       var now = Date.now();
       if (c.data !== lastCode || now - lastTime > 3000) {
