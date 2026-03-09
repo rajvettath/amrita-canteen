@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Amrita Canteen — Redeem</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { width: 100%; overflow-x: hidden; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #e8f5e9;
+  color: #1b2631;
+  padding: 16px 12px 60px;
+  width: 100%;
+  overflow-x: hidden;
+}
+h1 { text-align:center; font-size:22px; color:#1a5276; margin:8px 0 2px; }
+.sub { text-align:center; font-size:13px; color:#7f8c8d; margin-bottom:18px; }
+.icon { text-align:center; font-size:44px; margin:8px 0; }
+
+.card {
+  background:#fff; border-radius:14px; padding:16px;
+  margin-bottom:12px; border:2px solid #c8e6c9;
+  box-shadow:0 2px 8px rgba(0,0,0,0.07);
+}
+.ctitle {
+  font-size:14px; font-weight:bold; color:#1a5276;
+  border-bottom:2px solid #d6eaf8; padding-bottom:8px; margin-bottom:12px;
+}
+
+input[type=text] {
+  width:100%; padding:13px 12px; font-size:15px;
+  border:2px solid #aed6f1; border-radius:10px;
+  background:#f4f9fd; color:#1b2631;
+  font-family:Arial,Helvetica,sans-serif;
+  outline:none; display:block;
+}
+input[type=text]:focus { border-color:#2e86c1; }
+
+.row { display:flex; gap:8px; align-items:stretch; margin-bottom:12px; }
+.row input { flex:1; min-width:0; margin:0; }
+
+.gbtn {
+  display:block; width:100%; padding:15px 12px;
+  background:#1e8449; color:#fff; font-size:16px; font-weight:bold;
+  border:none; border-radius:12px; cursor:pointer; text-align:center;
+  font-family:Arial,Helvetica,sans-serif; margin-bottom:10px;
+}
+.gbtn:active { background:#196f3d; }
+
+.bbtn {
+  padding:13px 16px; background:#2e86c1; color:#fff;
+  font-size:15px; font-weight:bold; border:none; border-radius:10px;
+  cursor:pointer; white-space:nowrap; flex-shrink:0;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.bbtn:active { background:#1a5276; }
+
+.obtn {
+  display:block; width:100%; padding:17px;
+  background:#e67e22; color:#fff; font-size:17px; font-weight:bold;
+  border:none; border-radius:12px; cursor:pointer; text-align:center;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.obtn:active { background:#ca6f1e; }
+.obtn:disabled { background:#aab7b8; }
+
+.ybtn {
+  display:block; width:100%; padding:14px;
+  background:#f39c12; color:#fff; font-size:15px; font-weight:bold;
+  border:none; border-radius:10px; cursor:pointer; text-align:center;
+  font-family:Arial,Helvetica,sans-serif; margin-bottom:8px;
+}
+
+.blubtn {
+  display:block; width:100%; padding:14px;
+  background:#2e86c1; color:#fff; font-size:15px; font-weight:bold;
+  border:none; border-radius:10px; cursor:pointer; text-align:center;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+.div { display:flex; align-items:center; gap:8px; margin:4px 0 10px; }
+.divl { flex:1; height:2px; background:#d5e8d4; }
+.divt { font-size:12px; color:#95a5a6; font-weight:bold; }
+
+.qhead { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.qlabel { font-size:13px; font-weight:bold; color:#7f8c8d; text-transform:uppercase; }
+.qtotal { background:#e67e22; color:#fff; font-size:13px; font-weight:bold; padding:4px 12px; border-radius:16px; }
+
+.qempty {
+  text-align:center; color:#aab7b8; font-size:14px;
+  padding:20px 10px; border:2px dashed #d5e8d4; border-radius:10px;
+  background:#f9fef9; line-height:1.6;
+}
+
+.qitem {
+  display:flex; align-items:center; gap:8px;
+  background:#eafaf1; border:2px solid #a9dfbf;
+  border-radius:10px; padding:10px 12px; margin-bottom:8px;
+}
+.qinfo { flex:1; min-width:0; }
+.qid { font-size:13px; font-weight:bold; color:#1e8449; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qtype { font-size:12px; color:#7f8c8d; margin-top:2px; }
+.qbtns { display:flex; gap:6px; flex-shrink:0; }
+.cpybtn {
+  padding:6px 10px; background:#fef9e7; color:#9a7d0a;
+  font-size:12px; font-weight:bold; border:2px solid #f9e79f;
+  border-radius:7px; cursor:pointer; white-space:nowrap;
+  font-family:Arial,Helvetica,sans-serif;
+}
+.cpybtn.ok { background:#eafaf1; color:#1e8449; border-color:#a9dfbf; }
+.rmbtn {
+  padding:6px 10px; background:#fdedec; color:#c0392b;
+  font-size:13px; font-weight:bold; border:2px solid #f5b7b1;
+  border-radius:7px; cursor:pointer;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+.msg { display:none; padding:12px; border-radius:10px; font-size:14px; font-weight:bold; margin-top:10px; text-align:center; }
+.msg.ok { display:block; background:#eafaf1; border:2px solid #a9dfbf; color:#1e8449; }
+.msg.err { display:block; background:#fdedec; border:2px solid #f5b7b1; color:#c0392b; }
+
+.stepbox {
+  display:none; background:#fffde7; border:2px solid #ffe082;
+  border-radius:14px; padding:18px; text-align:center; margin-top:12px;
+}
+.stepbox.on { display:block; }
+.stepnum { font-size:12px; font-weight:bold; color:#f57f17; text-transform:uppercase; margin-bottom:6px; }
+.stepid { font-size:20px; font-weight:bold; color:#7b3e00; margin-bottom:4px; word-break:break-all; }
+.steptype { font-size:14px; color:#1e8449; font-weight:bold; margin-bottom:14px; }
+.stephint { font-size:12px; color:#7f8c8d; margin-top:10px; line-height:1.6; }
+
+/* Scanner */
+.overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.95); z-index:999;
+  flex-direction:column; align-items:center; justify-content:center; padding:20px;
+}
+.overlay.on { display:flex; }
+.scanbox {
+  width:260px; height:260px; border:4px solid #2ecc71;
+  border-radius:20px; position:relative; margin-bottom:18px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,0.78);
+  transition:border-color 0.3s, box-shadow 0.3s;
+}
+.scanline {
+  position:absolute; left:8px; right:8px; height:3px;
+  background:linear-gradient(90deg,transparent,#2ecc71,transparent);
+  animation:sl 2s ease-in-out infinite;
+}
+#camvid { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:16px; }
+.scanlabel { color:#fff; font-size:15px; font-weight:bold; text-align:center; margin-bottom:6px; }
+.scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:22px; min-height:20px; }
+.donebtn {
+  padding:14px 36px; background:#fff; color:#1b2631;
+  font-size:15px; font-weight:bold; border:none; border-radius:12px; cursor:pointer;
+  font-family:Arial,Helvetica,sans-serif; box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+
+.footer { text-align:center; color:#aab7b8; font-size:12px; margin-top:16px; }
+@keyframes sl { 0%,100%{top:8px} 50%{top:calc(100% - 12px)} }
+</style>
+</head>
+<body>
+
+<div class="icon">🍽️</div>
+<h1>Amrita Canteen</h1>
+<p class="sub">Staff Coupon Redemption</p>
+
+<!-- Step 1 -->
+<div class="card">
+  <div class="ctitle">👤 STEP 1 — YOUR NAME</div>
+  <input type="text" id="staffName" placeholder="Enter your name" autocomplete="off" />
+</div>
+
+<!-- Step 2 -->
+<div class="card">
+  <div class="ctitle">📷 STEP 2 — SCAN COUPONS</div>
+
+  <button class="gbtn" onclick="startScan()">📷 &nbsp;Scan QR Code</button>
+
+  <div class="div">
+    <div class="divl"></div>
+    <span class="divt">or enter manually</span>
+    <div class="divl"></div>
+  </div>
+
+  <div class="row">
+    <input type="text" id="manInput" placeholder="e.g. 9876543210-001"
+      onkeydown="if(event.key==='Enter')addMan()" autocomplete="off" />
+    <button class="bbtn" onclick="addMan()">+ Add</button>
+  </div>
+
+  <div class="qhead">
+    <span class="qlabel">Coupon Queue</span>
+    <span class="qtotal" id="qtotal" style="display:none">Rs.0</span>
+  </div>
+  <div id="qempty" class="qempty">No coupons added yet.<br>Scan or type above.</div>
+  <div id="qlist"></div>
+  <div class="msg" id="smsg"></div>
+</div>
+
+<!-- Step 3 -->
+<div class="card">
+  <div class="ctitle">✅ STEP 3 — REDEEM ALL</div>
+  <button class="obtn" id="redeemBtn" onclick="startRedeem()" disabled>✅ Redeem All Coupons</button>
+
+  <div class="stepbox" id="stepbox">
+    <div class="stepnum" id="stepnum">Coupon 1 of 1</div>
+    <div class="stepid" id="stepid">—</div>
+    <div class="steptype" id="steptype">—</div>
+    <button class="ybtn" id="copybtn" onclick="copyCurrent()">📋 Copy Coupon ID</button>
+    <button class="blubtn" onclick="openNext()">Open Redemption Form →</button>
+    <div class="stephint">1. Copy the Coupon ID<br>2. Open the form &amp; paste it<br>3. Submit, then come back</div>
+  </div>
+
+  <div class="msg" id="rmsg"></div>
+</div>
+
+<div class="footer">Amrita Canteen · Staff use only</div>
+
+<!-- Scanner overlay -->
+<div class="overlay" id="overlay">
+  <div class="scanbox" id="scanbox">
+    <video id="camvid" autoplay playsinline muted></video>
+    <div class="scanline"></div>
+  </div>
+  <p class="scanlabel">Point at QR Code</p>
+  <p class="scancount" id="scancount">Camera open — scan multiple!</p>
+  <button class="donebtn" onclick="stopScan()">✅ Done Scanning</button>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js" onerror="document.getElementById('jsqrerr').style.display='block'"></script>
+<div id="jsqrerr" style="display:none;background:#fdedec;border:2px solid #f5b7b1;color:#c0392b;padding:10px;border-radius:8px;font-size:13px;text-align:center;margin:8px 12px">⚠️ QR scanner failed to load. Check internet and refresh.</div>
+<script> = 'https://forms.microsoft.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUQTJaUk81SVo1RzBMWTZBMzZSNTdZSlcySC4u';
+
+let queue=[], stream=null, scanning=false, raf=null;
+let lastCode='', lastTime=0, step=0;
+let cvs=null, ctx=null;
+
+function val(id){ return document.getElementById(id).value.trim(); }
+function el(id){ return document.getElementById(id); }
+
+function couponInfo(id){
+  const n=parseInt((id.split('-').pop()||'0'));
+  if(n>=1&&n<=5) return {type:'Rs.100 Off',val:100};
+  if(n>=6&&n<=15) return {type:'Rs.50 Off',val:50};
+  if(n>=16&&n<=25) return {type:'Rs.20 Off',val:20};
+  return {type:'Coupon',val:0};
+}
+
+function addQ(raw){
+  const id=raw.trim().toUpperCase();
+  if(!id) return false;
+  if(queue.find(q=>q.id===id)){ smsg('⚠️ '+id+' already added!','err'); return false; }
+  const {type,val}=couponInfo(id);
+  queue.push({id,type,val});
+  renderQ(); return true;
+}
+
+function removeQ(i){ queue.splice(i,1); renderQ(); }
+
+function renderQ(){
+  const list=el('qlist'), empty=el('qempty'), tot=el('qtotal'), btn=el('redeemBtn');
+  if(queue.length===0){
+    empty.style.display='block'; list.innerHTML='';
+    tot.style.display='none'; btn.disabled=true;
+    btn.innerHTML='✅ Redeem All Coupons'; return;
+  }
+  empty.style.display='none'; btn.disabled=false;
+  const total=queue.reduce((s,q)=>s+q.val,0);
+  tot.style.display='inline-block'; tot.textContent='Rs.'+total;
+  btn.innerHTML='✅ Redeem All (Rs.'+total+')';
+  list.innerHTML=queue.map((q,i)=>`
+    <div class="qitem">
+      <div class="qinfo">
+        <div class="qid">${q.id}</div>
+        <div class="qtype">${q.type}</div>
+      </div>
+      <div class="qbtns">
+        <button class="cpybtn" id="cb${i}" onclick="copyId('${q.id}',${i})">📋 Copy</button>
+        <button class="rmbtn" onclick="removeQ(${i})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+function addMan(){
+  const inp=el('manInput'), v=inp.value.trim();
+  if(!v){ smsg('⚠️ Enter a Coupon ID','err'); return; }
+  if(addQ(v)){ inp.value=''; smsg('✅ '+v.toUpperCase()+' added!','ok'); setTimeout(()=>clearSmsg(),2500); }
+}
+
+// Copy helpers
+function copyId(id,i){
+  doCopy(id,()=>{
+    const b=el('cb'+i); if(!b)return;
+    b.textContent='✅ Copied!'; b.classList.add('ok');
+    setTimeout(()=>{ b.textContent='📋 Copy'; b.classList.remove('ok'); },2000);
+  });
+}
+
+function copyCurrent(){
+  if(step>=queue.length)return;
+  doCopy(queue[step].id,()=>{
+    const b=el('copybtn');
+    b.textContent='✅ Copied! Open form →';
+    b.style.background='#1e8449';
+  });
+}
+
+function doCopy(text,cb){
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(text).then(cb).catch(()=>fbCopy(text,cb));
+  } else { fbCopy(text,cb); }
+}
+
+function fbCopy(text,cb){
+  try{
+    const t=document.createElement('textarea');
+    t.value=text; t.style.cssText='position:fixed;opacity:0;top:0;left:0';
+    document.body.appendChild(t); t.focus(); t.select();
+    document.execCommand('copy'); document.body.removeChild(t);
+    if(cb)cb();
+  }catch(e){
+    window.prompt('Copy this ID:',text); if(cb)cb();
+  }
+}
+
+async function startScan(){
+  // STEP 1: Show we got here
+  smsg('Step 1: Button tapped ✅','ok');
+  
+  // STEP 2: Check jsQR
+  if(typeof jsQR === 'undefined'){
+    smsg('❌ jsQR library not loaded. You need internet connection.','err');
+    return;
+  }
+  smsg('Step 2: jsQR loaded ✅','ok');
+
+  // STEP 3: Check camera API
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    smsg('❌ Camera API not available. Open this page in Chrome or Edge via https://','err');
+    return;
+  }
+  smsg('Step 3: Camera API available ✅','ok');
+
+  // STEP 4: Request camera
+  smsg('Step 4: Requesting camera permission...','ok');
+  try{
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{exact:'environment'}}});
+    }catch(e){
+      stream = await navigator.mediaDevices.getUserMedia({video:true});
+    }
+    smsg('Step 5: Camera granted ✅ — opening scanner...','ok');
+    const vid = el('camvid');
+    vid.srcObject = stream;
+    vid.onloadedmetadata = () => { vid.play(); };
+    el('overlay').classList.add('on');
+    scanning=true;
+    cvs=document.createElement('canvas');
+    ctx=cvs.getContext('2d');
+    updateCount();
+    requestAnimationFrame(doScan);
+  }catch(e){
+    if(e.name==='NotAllowedError'||e.name==='PermissionDeniedError'){
+      smsg('❌ Camera BLOCKED. Tap 🔒 in address bar → Allow Camera → Refresh.','err');
+    } else if(e.name==='NotFoundError'){
+      smsg('❌ No camera found on device.','err');
+    } else if(e.name==='NotReadableError'){
+      smsg('❌ Camera busy — close other apps and try again.','err');
+    } else {
+      smsg('❌ Error: '+e.name+' — '+e.message,'err');
+    }
+  }
+}
+
+function doScan(){
+  if(!scanning)return;
+  const v=el('camvid');
+  if(v.readyState===v.HAVE_ENOUGH_DATA){
+    if(cvs.width!==v.videoWidth){ cvs.width=v.videoWidth; cvs.height=v.videoHeight; }
+    ctx.drawImage(v,0,0);
+    const d=ctx.getImageData(0,0,cvs.width,cvs.height);
+    const c=jsQR(d.data,d.width,d.height);
+    if(c){
+      const now=Date.now();
+      if(c.data!==lastCode||now-lastTime>3000){
+        lastCode=c.data; lastTime=now;
+        let id=c.data;
+        try{ const u=new URL(c.data); id=u.searchParams.get('id')||u.searchParams.get('coupon')||c.data; }catch(e){}
+        if(addQ(id)){
+          const b=el('scanbox');
+          b.style.borderColor='#f1c40f';
+          b.style.boxShadow='0 0 0 9999px rgba(0,0,0,0.78),0 0 30px rgba(241,196,15,0.6)';
+          setTimeout(()=>{ b.style.borderColor='#2ecc71'; b.style.boxShadow='0 0 0 9999px rgba(0,0,0,0.78)'; },600);
+          updateCount();
+        }
+      }
+    }
+  }
+  raf=requestAnimationFrame(doScan);
+}
+
+function updateCount(){
+  const total=queue.reduce((s,q)=>s+q.val,0);
+  el('scancount').textContent=queue.length===0
+    ?'Camera open — scan multiple!'
+    :'✅ '+queue.length+' coupon'+(queue.length>1?'s':'')+' · Rs.'+total+' — scan more!';
+}
+
+function stopScan(){
+  scanning=false;
+  if(raf)cancelAnimationFrame(raf);
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  el('overlay').classList.remove('on');
+  if(queue.length>0){
+    const total=queue.reduce((s,q)=>s+q.val,0);
+    smsg('✅ '+queue.length+' coupon'+(queue.length>1?'s':'')+' ready · Rs.'+total,'ok');
+  }
+}
+
+// Redeem flow
+function startRedeem(){
+  const name=el('staffName').value.trim();
+  if(!name){ rmsg('⚠️ Enter your name in Step 1 first!','err'); el('staffName').focus(); return; }
+  if(queue.length===0){ rmsg('⚠️ No coupons in queue.','err'); return; }
+  step=0; showStep();
+  el('stepbox').classList.add('on');
+  el('redeemBtn').style.display='none';
+}
+
+function showStep(){
+  if(step>=queue.length){
+    const total=queue.reduce((s,q)=>s+q.val,0);
+    const count=queue.length;
+    el('stepbox').classList.remove('on');
+    el('redeemBtn').style.display='block';
+    rmsg('🎉 All '+count+' coupon'+(count>1?'s':'')+' redeemed! Rs.'+total+' total!','ok');
+    queue=[]; renderQ(); return;
+  }
+  const q=queue[step];
+  el('stepnum').textContent='Coupon '+(step+1)+' of '+queue.length;
+  el('stepid').textContent=q.id;
+  el('steptype').textContent=q.type+' · Rs.'+q.val;
+  const b=el('copybtn');
+  b.textContent='📋 Copy Coupon ID';
+  b.style.background='#f39c12';
+}
+
+function openNext(){
+  window.open(FORMS,'_blank');
+  step++;
+  showStep();
+  if(step<queue.length) rmsg('Form opened! Next: coupon '+(step+1)+' of '+queue.length,'ok');
+}
+
+function smsg(t,c){ const e=el('smsg'); e.textContent=t; e.className='msg '+c; }
+function clearSmsg(){ el('smsg').className='msg'; }
+function rmsg(t,c){ const e=el('rmsg'); e.textContent=t; e.className='msg '+c; }
+</script>
+</body>
+</html>
