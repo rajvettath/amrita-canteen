@@ -58,9 +58,17 @@ input:focus { border-color:#2e86c1; }
 .overlay.on { display:flex; }
 .scanbox { width:260px; height:260px; border:4px solid #2ecc71; border-radius:20px; position:relative; margin-bottom:18px; box-shadow:0 0 0 9999px rgba(0,0,0,0.78); transition:border-color 0.3s; }
 .scanline { position:absolute; left:8px; right:8px; height:3px; background:linear-gradient(90deg,transparent,#2ecc71,transparent); animation:sl 2s ease-in-out infinite; }
-#camvid { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:16px; }
-.scanlabel { color:#fff; font-size:15px; font-weight:bold; text-align:center; margin-bottom:6px; }
-.scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:22px; min-height:20px; }
+#camvid { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:16px; cursor:crosshair; }
+.scanlabel { color:#fff; font-size:15px; font-weight:bold; text-align:center; margin-bottom:4px; }
+.scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:12px; min-height:20px; }
+.scan-controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:14px; width:100%; max-width:300px; }
+.torchbtn { padding:12px 18px; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border:2px solid rgba(255,255,255,0.3); border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; transition:background 0.2s; }
+.torchbtn.on { background:#f1c40f; color:#1b2631; border-color:#f1c40f; }
+.zoom-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.zoom-label { color:#fff; font-size:11px; }
+#zoomSlider { width:100%; accent-color:#2ecc71; }
+.tap-hint { color:rgba(255,255,255,0.6); font-size:12px; text-align:center; margin-bottom:10px; }
+.focusring { position:absolute; width:60px; height:60px; border:3px solid #f1c40f; border-radius:8px; pointer-events:none; display:none; transform:translate(-50%,-50%); }
 .donebtn { padding:14px 36px; background:#fff; color:#1b2631; font-size:15px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
 .footer { text-align:center; color:#aab7b8; font-size:12px; margin-top:16px; }
 @keyframes sl { 0%,100%{top:8px} 50%{top:calc(100% - 12px)} }
@@ -111,12 +119,21 @@ input:focus { border-color:#2e86c1; }
 <div class="footer">Amrita Canteen · Staff use only</div>
 
 <div class="overlay" id="overlay">
-  <div class="scanbox" id="scanbox">
+  <div class="scanbox" id="scanbox" onclick="tapFocus(event)" style="width:290px;height:290px;">
     <video id="camvid" autoplay playsinline muted></video>
     <div class="scanline"></div>
+    <div class="focusring" id="focusring"></div>
   </div>
-  <p class="scanlabel">Hold steady — point at QR Code</p>
-  <p class="scancount" id="scancount">Keep QR code inside the green box</p>
+  <p class="scanlabel">Point QR code at the green box</p>
+  <p class="tap-hint">Tap box to focus</p>
+  <p class="scancount" id="scancount">Ready to scan</p>
+  <div class="scan-controls">
+    <button class="torchbtn" id="torchbtn" onclick="toggleTorch()">🔦</button>
+    <div class="zoom-wrap">
+      <span class="zoom-label">Zoom</span>
+      <input type="range" id="zoomSlider" min="1" max="4" step="0.1" value="1" oninput="setZoom(this.value)" />
+    </div>
+  </div>
   <button class="donebtn" onclick="stopScan()">✅ Done Scanning</button>
 </div>
 
@@ -132,6 +149,8 @@ var lastTime = 0;
 var step = 0;
 var cvs = null;
 var ctx = null;
+var torchOn = false;
+var videoTrack = null;
 
 function g(id) { return document.getElementById(id); }
 
@@ -244,8 +263,44 @@ function fbCopy(text, cb) {
   }
 }
 
+function toggleTorch() {
+  if (!videoTrack) return;
+  torchOn = !torchOn;
+  videoTrack.applyConstraints({ advanced: [{ torch: torchOn }] })
+    .then(function() {
+      var btn = g('torchbtn');
+      btn.className = torchOn ? 'torchbtn on' : 'torchbtn';
+      btn.textContent = torchOn ? '🔦' : '🔦';
+    })
+    .catch(function() {
+      torchOn = false;
+      smsg('Torch not supported on this device', 'err');
+    });
+}
+
+function setZoom(val) {
+  if (!videoTrack) return;
+  videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(val) }] }).catch(function(){});
+}
+
+function tapFocus(e) {
+  if (!videoTrack) return;
+  var box = g('scanbox');
+  var rect = box.getBoundingClientRect();
+  var x = (e.clientX - rect.left) / rect.width;
+  var y = (e.clientY - rect.top) / rect.height;
+  // Show focus ring
+  var ring = g('focusring');
+  ring.style.left = (x * 100) + '%';
+  ring.style.top = (y * 100) + '%';
+  ring.style.display = 'block';
+  setTimeout(function() { ring.style.display = 'none'; }, 800);
+  // Apply focus point
+  videoTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot', pointOfInterest: { x: x, y: y } }] }).catch(function(){});
+}
+
 function startScan() {
-  smsg('Tap 1: OK. Checking camera...', 'ok');
+  smsg('Requesting camera...', 'ok');
   if (typeof jsQR === 'undefined') {
     smsg('QR library not loaded. Check internet and refresh.', 'err');
     return;
@@ -254,51 +309,116 @@ function startScan() {
     smsg('Camera not available. Open via https:// in Chrome.', 'err');
     return;
   }
-  smsg('Requesting camera permission...', 'ok');
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } })
+  var constraints = {
+    video: {
+      facingMode: 'environment',
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      advanced: [{ focusMode: 'continuous' }]
+    }
+  };
+  navigator.mediaDevices.getUserMedia(constraints)
     .then(function(s) {
       stream = s;
+      videoTrack = s.getVideoTracks()[0];
+      // Apply continuous autofocus
+      if (videoTrack && videoTrack.applyConstraints) {
+        videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function(){});
+      }
+      // Check zoom support and set slider max
+      if (videoTrack) {
+        var caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+        if (caps.zoom) {
+          var slider = g('zoomSlider');
+          slider.min = caps.zoom.min || 1;
+          slider.max = Math.min(caps.zoom.max || 4, 4);
+          slider.value = caps.zoom.min || 1;
+          slider.style.display = 'block';
+        } else {
+          g('zoomSlider').style.display = 'none';
+        }
+      }
       var vid = g('camvid');
       vid.srcObject = stream;
       vid.play();
+      // Reset torch button
+      torchOn = false;
+      g('torchbtn').className = 'torchbtn';
       g('overlay').className = 'overlay on';
       scanning = true;
       cvs = document.createElement('canvas');
       ctx = cvs.getContext('2d');
       updateCount();
-      raf = requestAnimationFrame(doScan);
-      smsg('Camera open!', 'ok');
+      raf = setInterval(doScan, 200);
+      smsg('Camera open! Hold QR code steady in the green box.', 'ok');
     })
     .catch(function(e) {
-      smsg('Camera error: ' + e.name + ' - ' + e.message, 'err');
+      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+        smsg('Camera blocked. Tap lock icon in address bar > Allow Camera > Refresh.', 'err');
+      } else if (e.name === 'NotFoundError') {
+        smsg('No camera found on device.', 'err');
+      } else {
+        smsg('Camera error: ' + e.name, 'err');
+      }
     });
 }
 
 function doScan() {
   if (!scanning) return;
   var v = g('camvid');
-  if (v.readyState === v.HAVE_ENOUGH_DATA && v.videoWidth > 0) {
-    if (cvs.width !== v.videoWidth) { cvs.width = v.videoWidth; cvs.height = v.videoHeight; }
-    ctx.drawImage(v, 0, 0);
-    var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
-    var c = jsQR(d.data, d.width, d.height, { inversionAttempts: 'attemptBoth' });
-    if (c) {
-      var now = Date.now();
-      if (c.data !== lastCode || now - lastTime > 3000) {
-        lastCode = c.data;
-        lastTime = now;
-        var id = c.data;
-        try { var u = new URL(c.data); id = u.searchParams.get('id') || u.searchParams.get('coupon') || c.data; } catch(e) {}
-        if (addQ(id)) {
-          var b = g('scanbox');
-          b.style.borderColor = '#f1c40f';
-          setTimeout(function() { b.style.borderColor = '#2ecc71'; }, 600);
-          updateCount();
-        }
+  if (v.readyState !== v.HAVE_ENOUGH_DATA || v.videoWidth === 0) return;
+
+  // Match canvas to video
+  if (cvs.width !== v.videoWidth) { cvs.width = v.videoWidth; cvs.height = v.videoHeight; }
+  ctx.drawImage(v, 0, 0);
+
+  // --- Attempt 1: Scan full frame ---
+  var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
+  var result = jsQR(d.data, d.width, d.height, { inversionAttempts: 'attemptBoth' });
+
+  // --- Attempt 2: Scan center crop (where the green box points) ---
+  if (!result) {
+    var cx = Math.floor(cvs.width * 0.15);
+    var cy = Math.floor(cvs.height * 0.15);
+    var cw = Math.floor(cvs.width * 0.7);
+    var ch = Math.floor(cvs.height * 0.7);
+    var cropped = ctx.getImageData(cx, cy, cw, ch);
+    result = jsQR(cropped.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+  }
+
+  // --- Attempt 3: Boost contrast and retry ---
+  if (!result) {
+    var imgd = ctx.getImageData(0, 0, cvs.width, cvs.height);
+    var px = imgd.data;
+    for (var i = 0; i < px.length; i += 4) {
+      // Convert to grayscale then boost contrast
+      var gray = 0.299 * px[i] + 0.587 * px[i+1] + 0.114 * px[i+2];
+      var contrast = (gray - 128) * 2.0 + 128;
+      contrast = contrast < 0 ? 0 : contrast > 255 ? 255 : contrast;
+      px[i] = px[i+1] = px[i+2] = contrast;
+    }
+    result = jsQR(px, cvs.width, cvs.height, { inversionAttempts: 'attemptBoth' });
+  }
+
+  if (result) {
+    var now = Date.now();
+    if (result.data !== lastCode || now - lastTime > 3000) {
+      lastCode = result.data;
+      lastTime = now;
+      var id = result.data;
+      try { var u = new URL(result.data); id = u.searchParams.get('id') || u.searchParams.get('coupon') || result.data; } catch(e) {}
+      if (addQ(id)) {
+        var b = g('scanbox');
+        b.style.borderColor = '#f1c40f';
+        b.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.78), 0 0 30px rgba(241,196,15,0.7)';
+        setTimeout(function() {
+          b.style.borderColor = '#2ecc71';
+          b.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.78)';
+        }, 600);
+        updateCount();
       }
     }
   }
-  raf = requestAnimationFrame(doScan);
 }
 
 function updateCount() {
@@ -313,8 +433,11 @@ function updateCount() {
 
 function stopScan() {
   scanning = false;
-  if (raf) cancelAnimationFrame(raf);
+  if (raf) { clearInterval(raf); raf = null; }
   if (stream) { stream.getTracks().forEach(function(t) { t.stop(); }); stream = null; }
+  videoTrack = null; torchOn = false;
+  g('torchbtn').className = 'torchbtn';
+  g('zoomSlider').value = 1;
   g('overlay').className = 'overlay';
   if (queue.length > 0) {
     smsg(queue.length + ' coupon(s) ready · Rs.' + getTotal(), 'ok');
