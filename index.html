@@ -48,8 +48,7 @@ input:focus { border-color:#2e86c1; }
 .msg { display:none; padding:12px; border-radius:10px; font-size:14px; font-weight:bold; margin-top:10px; text-align:center; }
 .msg.ok { display:block; background:#eafaf1; border:2px solid #a9dfbf; color:#1e8449; }
 .msg.err { display:block; background:#fdedec; border:2px solid #f5b7b1; color:#c0392b; }
-.stepbox { display:none; background:#fffde7; border:2px solid #ffe082; border-radius:14px; padding:18px; text-align:center; margin-top:12px; }
-.stepbox.on { display:block; }
+
 .stepnum { font-size:12px; font-weight:bold; color:#f57f17; text-transform:uppercase; margin-bottom:6px; }
 .stepid { font-size:20px; font-weight:bold; color:#7b3e00; margin-bottom:4px; word-break:break-all; }
 .steptype { font-size:14px; color:#1e8449; font-weight:bold; margin-bottom:14px; }
@@ -105,14 +104,6 @@ input:focus { border-color:#2e86c1; }
 <div class="card">
   <div class="ctitle">✅ STEP 3 — REDEEM ALL</div>
   <button class="obtn" id="redeemBtn" onclick="startRedeem()" disabled>✅ Redeem All Coupons</button>
-  <div class="stepbox" id="stepbox">
-    <div class="stepnum" id="stepnum">Coupon 1 of 1</div>
-    <div class="stepid" id="stepid">—</div>
-    <div class="steptype" id="steptype">—</div>
-    <button class="ybtn" id="copybtn" onclick="copyCurrent()">📋 Copy Coupon ID</button>
-    <button class="blubtn" onclick="openNext()">Open Redemption Form</button>
-    <div class="stephint">1. Copy the Coupon ID<br>2. Open the form and paste it<br>3. Submit, then come back</div>
-  </div>
   <div class="msg" id="rmsg"></div>
 </div>
 
@@ -228,15 +219,6 @@ function copyId(id, i) {
   });
 }
 
-function copyCurrent() {
-  if (step >= queue.length) return;
-  var id = queue[step].id;
-  doCopy(id, function() {
-    var b = g('copybtn');
-    b.textContent = 'Copied! Now open form';
-    b.style.background = '#1e8449';
-  });
-}
 
 function doCopy(text, cb) {
   if (navigator.clipboard && window.isSecureContext) {
@@ -448,36 +430,90 @@ function startRedeem() {
   var name = g('staffName').value.trim();
   if (!name) { rmsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
   if (queue.length === 0) { rmsg('No coupons in queue.', 'err'); return; }
-  step = 0;
-  showStep();
-  g('stepbox').className = 'stepbox on';
-  g('redeemBtn').style.display = 'none';
+  g('redeemBtn').disabled = true;
+  g('redeemBtn').innerHTML = '⏳ Redeeming...';
+  rmsg('Redeeming ' + queue.length + ' coupon(s)...', 'ok');
+  redeemAll(0, 0, []);
 }
 
-function showStep() {
-  if (step >= queue.length) {
-    var total = getTotal();
-    var count = queue.length;
-    g('stepbox').className = 'stepbox';
+function redeemAll(index, successCount, errors) {
+  if (index >= queue.length) {
+    // All done
     g('redeemBtn').style.display = 'block';
-    rmsg('All ' + count + ' coupon(s) redeemed! Rs.' + total + ' total!', 'ok');
+    g('redeemBtn').disabled = true;
+    if (errors.length === 0) {
+      rmsg('✅ All ' + successCount + ' coupon(s) redeemed! Rs.' + getTotal() + ' discount applied.', 'ok');
+    } else {
+      rmsg('⚠️ ' + successCount + ' redeemed. Failed: ' + errors.join(', '), 'err');
+    }
     queue = [];
     renderQ();
     return;
   }
-  var q = queue[step];
-  g('stepnum').textContent = 'Coupon ' + (step + 1) + ' of ' + queue.length;
-  g('stepid').textContent = q.id;
-  g('steptype').textContent = q.type + ' · Rs.' + q.val;
-  var b = g('copybtn');
-  b.textContent = 'Copy Coupon ID';
-  b.style.background = '#f39c12';
-}
 
-function openNext() {
-  window.open(FORMS_URL, '_blank');
-  step++;
-  showStep();
+  var coupon = queue[index];
+  rmsg('Redeeming ' + (index + 1) + ' of ' + queue.length + ': ' + coupon.id + '...', 'ok');
+
+  var siteUrl = 'https://amritahealth.sharepoint.com/sites/foodcouponsmicrosoftlist';
+  var listName = 'Coupon List';
+
+  // Step 1: Get the item ID and current Times Used
+  var filterUrl = siteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items?$filter=Title eq '" + coupon.id + "'&$select=Id,Times_Used,Title";
+
+  fetch(filterUrl, {
+    method: 'GET',
+    headers: { 'Accept': 'application/json;odata=nometadata' },
+    credentials: 'include'
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.value || data.value.length === 0) {
+      errors.push(coupon.id + ' (not found)');
+      redeemAll(index + 1, successCount, errors);
+      return;
+    }
+    var item = data.value[0];
+    var itemId = item.Id;
+    var timesUsed = item.Times_Used || 0;
+
+    // Step 2: Get request digest for write operations
+    return fetch(siteUrl + '/_api/contextinfo', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json;odata=nometadata' },
+      credentials: 'include'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(ctx) {
+      var digest = ctx.FormDigestValue;
+
+      // Step 3: Update Times Used
+      return fetch(siteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items(" + itemId + ")", {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json;odata=nometadata',
+          'Content-Type': 'application/json;odata=nometadata',
+          'X-RequestDigest': digest,
+          'X-HTTP-Method': 'MERGE',
+          'IF-MATCH': '*'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ Times_Used: timesUsed + 1 })
+      });
+    })
+    .then(function(r) {
+      if (r.ok || r.status === 204) {
+        successCount++;
+        redeemAll(index + 1, successCount, errors);
+      } else {
+        errors.push(coupon.id + ' (update failed)');
+        redeemAll(index + 1, successCount, errors);
+      }
+    });
+  })
+  .catch(function(err) {
+    errors.push(coupon.id + ' (error)');
+    redeemAll(index + 1, successCount, errors);
+  });
 }
 
 function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
