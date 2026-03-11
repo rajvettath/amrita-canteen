@@ -20,48 +20,34 @@ h1 { text-align:center; font-size:22px; color:#1a5276; margin:4px 0 2px; }
 .sub { text-align:center; font-size:13px; color:#7f8c8d; margin-bottom:18px; }
 .card { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; border:2px solid #c8e6c9; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
 .ctitle { font-size:14px; font-weight:bold; color:#1a5276; border-bottom:2px solid #d6eaf8; padding-bottom:8px; margin-bottom:12px; }
-input { width:100%; padding:13px 12px; font-size:16px; border:2px solid #aed6f1; border-radius:10px; background:#f4f9fd; color:#1b2631; font-family:Arial,Helvetica,sans-serif; outline:none; display:block; -webkit-appearance:none; }
-input:focus { border-color:#2e86c1; }
-.row { display:flex; gap:8px; margin-bottom:12px; }
-.row input { flex:1; min-width:0; margin:0; }
-.gbtn { display:block; width:100%; padding:15px; background:#1e8449; color:#fff; font-size:16px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; text-align:center; font-family:Arial,Helvetica,sans-serif; margin-bottom:10px; -webkit-appearance:none; }
-.bbtn { padding:13px 16px; background:#2e86c1; color:#fff; font-size:15px; font-weight:bold; border:none; border-radius:10px; cursor:pointer; white-space:nowrap; font-family:Arial,Helvetica,sans-serif; -webkit-appearance:none; flex-shrink:0; }
+input[type=text] { width:100%; padding:13px 12px; font-size:16px; border:2px solid #aed6f1; border-radius:10px; background:#f4f9fd; color:#1b2631; font-family:Arial,Helvetica,sans-serif; outline:none; display:block; -webkit-appearance:none; }
+input[type=text]:focus { border-color:#2e86c1; }
+.gbtn { display:block; width:100%; padding:15px; background:#1e8449; color:#fff; font-size:17px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; text-align:center; font-family:Arial,Helvetica,sans-serif; margin-bottom:10px; -webkit-appearance:none; }
 .obtn { display:block; width:100%; padding:17px; background:#e67e22; color:#fff; font-size:17px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; -webkit-appearance:none; }
 .obtn:disabled { background:#aab7b8; }
-.ybtn { display:block; width:100%; padding:14px; background:#f39c12; color:#fff; font-size:15px; font-weight:bold; border:none; border-radius:10px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; margin-bottom:8px; -webkit-appearance:none; }
-.blubtn { display:block; width:100%; padding:14px; background:#2e86c1; color:#fff; font-size:15px; font-weight:bold; border:none; border-radius:10px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; -webkit-appearance:none; }
 .div { display:flex; align-items:center; gap:8px; margin:4px 0 10px; }
 .divl { flex:1; height:2px; background:#d5e8d4; }
 .divt { font-size:12px; color:#95a5a6; font-weight:bold; }
-.qhead { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-.qlabel { font-size:13px; font-weight:bold; color:#7f8c8d; text-transform:uppercase; }
-.qtotal { background:#e67e22; color:#fff; font-size:13px; font-weight:bold; padding:4px 12px; border-radius:16px; display:none; }
-.qempty { text-align:center; color:#aab7b8; font-size:14px; padding:20px 10px; border:2px dashed #d5e8d4; border-radius:10px; background:#f9fef9; line-height:1.6; }
-.qitem { display:flex; align-items:center; gap:8px; background:#eafaf1; border:2px solid #a9dfbf; border-radius:10px; padding:10px 12px; margin-bottom:8px; }
-.qinfo { flex:1; min-width:0; }
-.qid { font-size:13px; font-weight:bold; color:#1e8449; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.qtype { font-size:12px; color:#7f8c8d; margin-top:2px; }
-.qbtns { display:flex; gap:6px; flex-shrink:0; }
-.cpybtn { padding:6px 10px; background:#fef9e7; color:#9a7d0a; font-size:12px; font-weight:bold; border:2px solid #f9e79f; border-radius:7px; cursor:pointer; white-space:nowrap; font-family:Arial,Helvetica,sans-serif; }
-.cpybtn.ok { background:#eafaf1; color:#1e8449; border-color:#a9dfbf; }
-.rmbtn { padding:6px 10px; background:#fdedec; color:#c0392b; font-size:13px; font-weight:bold; border:2px solid #f5b7b1; border-radius:7px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
-.msg { display:none; padding:12px; border-radius:10px; font-size:14px; font-weight:bold; margin-top:10px; text-align:center; }
+.row { display:flex; gap:8px; }
+.row input { flex:1; min-width:0; margin:0; }
+.bbtn { padding:13px 16px; background:#2e86c1; color:#fff; font-size:15px; font-weight:bold; border:none; border-radius:10px; cursor:pointer; white-space:nowrap; font-family:Arial,Helvetica,sans-serif; -webkit-appearance:none; flex-shrink:0; }
+.msg { display:none; padding:12px; border-radius:10px; font-size:14px; font-weight:bold; margin-top:10px; text-align:center; line-height:1.5; }
 .msg.ok { display:block; background:#eafaf1; border:2px solid #a9dfbf; color:#1e8449; }
 .msg.err { display:block; background:#fdedec; border:2px solid #f5b7b1; color:#c0392b; }
-
-.stepnum { font-size:12px; font-weight:bold; color:#f57f17; text-transform:uppercase; margin-bottom:6px; }
-.stepid { font-size:20px; font-weight:bold; color:#7b3e00; margin-bottom:4px; word-break:break-all; }
-.steptype { font-size:14px; color:#1e8449; font-weight:bold; margin-bottom:14px; }
-.stephint { font-size:12px; color:#7f8c8d; margin-top:10px; line-height:1.6; }
+.coupon-preview { background:#eafaf1; border:2px solid #a9dfbf; border-radius:12px; padding:14px 16px; margin-top:12px; display:none; }
+.coupon-preview.show { display:block; }
+.cp-id { font-size:18px; font-weight:bold; color:#1e8449; margin-bottom:4px; word-break:break-all; }
+.cp-type { font-size:13px; color:#7f8c8d; }
+.footer { text-align:center; color:#aab7b8; font-size:12px; margin-top:16px; }
 .overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:999; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
 .overlay.on { display:flex; }
-.scanbox { width:260px; height:260px; border:4px solid #2ecc71; border-radius:20px; position:relative; margin-bottom:18px; box-shadow:0 0 0 9999px rgba(0,0,0,0.78); transition:border-color 0.3s; }
+.scanbox { width:290px; height:290px; border:4px solid #2ecc71; border-radius:20px; position:relative; margin-bottom:18px; box-shadow:0 0 0 9999px rgba(0,0,0,0.78); transition:border-color 0.3s; }
 .scanline { position:absolute; left:8px; right:8px; height:3px; background:linear-gradient(90deg,transparent,#2ecc71,transparent); animation:sl 2s ease-in-out infinite; }
 #camvid { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:16px; cursor:crosshair; }
 .scanlabel { color:#fff; font-size:15px; font-weight:bold; text-align:center; margin-bottom:4px; }
 .scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:12px; min-height:20px; }
 .scan-controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:14px; width:100%; max-width:300px; }
-.torchbtn { padding:12px 18px; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border:2px solid rgba(255,255,255,0.3); border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; transition:background 0.2s; }
+.torchbtn { padding:12px 18px; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border:2px solid rgba(255,255,255,0.3); border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
 .torchbtn.on { background:#f1c40f; color:#1b2631; border-color:#f1c40f; }
 .zoom-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
 .zoom-label { color:#fff; font-size:11px; }
@@ -69,7 +55,6 @@ input:focus { border-color:#2e86c1; }
 .tap-hint { color:rgba(255,255,255,0.6); font-size:12px; text-align:center; margin-bottom:10px; }
 .focusring { position:absolute; width:60px; height:60px; border:3px solid #f1c40f; border-radius:8px; pointer-events:none; display:none; transform:translate(-50%,-50%); }
 .donebtn { padding:14px 36px; background:#fff; color:#1b2631; font-size:15px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
-.footer { text-align:center; color:#aab7b8; font-size:12px; margin-top:16px; }
 @keyframes sl { 0%,100%{top:8px} 50%{top:calc(100% - 12px)} }
 </style>
 </head>
@@ -85,33 +70,30 @@ input:focus { border-color:#2e86c1; }
 </div>
 
 <div class="card">
-  <div class="ctitle">📷 STEP 2 — SCAN COUPONS</div>
+  <div class="ctitle">📷 STEP 2 — SCAN OR TYPE COUPON</div>
   <button class="gbtn" onclick="startScan()">📷 Scan QR Code</button>
   <div class="div"><div class="divl"></div><span class="divt">or enter manually</span><div class="divl"></div></div>
   <div class="row">
-    <input type="text" id="manInput" placeholder="e.g. 9876543210-001" autocomplete="off" onkeydown="if(event.key==='Enter')addMan()" />
-    <button class="bbtn" onclick="addMan()">+ Add</button>
+    <input type="text" id="manInput" placeholder="e.g. 9876543210-001" autocomplete="off" onkeydown="if(event.key==='Enter')doManual()" />
+    <button class="bbtn" onclick="doManual()">+ Add</button>
   </div>
-  <div class="qhead">
-    <span class="qlabel">Coupon Queue</span>
-    <span class="qtotal" id="qtotal">Rs.0</span>
+  <div class="coupon-preview" id="couponPreview">
+    <div class="cp-id" id="cpId"></div>
+    <div class="cp-type" id="cpType"></div>
   </div>
-  <div id="qempty" class="qempty">No coupons added yet.<br>Scan or type above.</div>
-  <div id="qlist"></div>
   <div class="msg" id="smsg"></div>
 </div>
 
 <div class="card">
-  <div class="ctitle">✅ STEP 3 — REDEEM ALL</div>
-  <button class="obtn" id="redeemBtn" onclick="startRedeem()" disabled>✅ Redeem All Coupons</button>
-  <div style="font-size:12px;color:#7f8c8d;text-align:center;margin-top:8px;line-height:1.6;">A form will open for each coupon.<br>Submit each form to confirm redemption.</div>
+  <div class="ctitle">✅ STEP 3 — REDEEM</div>
+  <button class="obtn" id="redeemBtn" onclick="doRedeem()" disabled>✅ Redeem Coupon</button>
   <div class="msg" id="rmsg"></div>
 </div>
 
 <div class="footer">Amrita Canteen · Staff use only</div>
 
 <div class="overlay" id="overlay">
-  <div class="scanbox" id="scanbox" onclick="tapFocus(event)" style="width:290px;height:290px;">
+  <div class="scanbox" id="scanbox" onclick="tapFocus(event)">
     <video id="camvid" autoplay playsinline muted></video>
     <div class="scanline"></div>
     <div class="focusring" id="focusring"></div>
@@ -126,19 +108,21 @@ input:focus { border-color:#2e86c1; }
       <input type="range" id="zoomSlider" min="1" max="4" step="0.1" value="1" oninput="setZoom(this.value)" />
     </div>
   </div>
-  <button class="donebtn" onclick="stopScan()">✅ Done Scanning</button>
+  <button class="donebtn" onclick="stopScan()">✅ Done</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-var REDEEM_FORM_URL = 'https://forms.office.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUNjBJNFFESk1GTE1JTVBMQlVESkg5VEFHVy4u';
-var queue = [];
+var FORM_URL     = 'https://forms.office.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUNjBJNFFESk1GTE1JTVBMQlVESkg5VEFHVy4u';
+var FIELD_COUPON = 'r3d398d7bd1804693a922bf1e8e001f6e';
+var FIELD_STAFF  = 'r110227d37e7648d595690d258ef4b077';
+
+var currentCoupon = null;
 var stream = null;
 var scanning = false;
 var raf = null;
 var lastCode = '';
 var lastTime = 0;
-var step = 0;
 var cvs = null;
 var ctx = null;
 var torchOn = false;
@@ -146,238 +130,91 @@ var videoTrack = null;
 
 function g(id) { return document.getElementById(id); }
 
-// Restore state after returning from form
-(function restoreState() {
-  try {
-    var saved = sessionStorage.getItem('redeemState');
-    if (!saved) return;
-    var state = JSON.parse(saved);
-    sessionStorage.removeItem('redeemState');
-    queue = state.queue || [];
-    if (state.staffName) {
-      // Restore after DOM loads
-      window.addEventListener('DOMContentLoaded', function() {
-        g('staffName').value = state.staffName;
-        renderQ();
-        if (state.nextIndex < queue.length) {
-          rmsg('✅ Form ' + state.nextIndex + ' submitted! Tap Next to continue.', 'ok');
-          var nextBtn = document.createElement('button');
-          nextBtn.id = 'nextFormBtn';
-          nextBtn.className = 'blubtn';
-          nextBtn.style.marginTop = '8px';
-          nextBtn.textContent = '➡️ Next Coupon (' + (state.nextIndex + 1) + ' of ' + state.total + ')';
-          nextBtn.onclick = function() {
-            nextBtn.remove();
-            openNextForm(state.nextIndex);
-          };
-          g('rmsg').insertAdjacentElement('afterend', nextBtn);
-        } else {
-          rmsg('✅ All ' + state.total + ' coupon(s) redeemed!', 'ok');
-          queue = [];
-          renderQ();
-        }
-      });
-    }
-  } catch(e) {}
-})();
-
 function couponInfo(id) {
   var parts = id.split('-');
   var n = parseInt(parts[parts.length - 1]) || 0;
-  if (n >= 1 && n <= 5) return { type: 'Rs.100 Off', val: 100 };
-  if (n >= 6 && n <= 15) return { type: 'Rs.50 Off', val: 50 };
-  if (n >= 16 && n <= 25) return { type: 'Rs.20 Off', val: 20 };
-  return { type: 'Coupon', val: 0 };
+  if (n >= 1  && n <= 5)  return { type:'Rs.100 Off', val:100 };
+  if (n >= 6  && n <= 15) return { type:'Rs.50 Off',  val:50  };
+  if (n >= 16 && n <= 25) return { type:'Rs.20 Off',  val:20  };
+  return { type:'Coupon', val:0 };
 }
 
-function addQ(raw) {
-  var id = raw.trim().toUpperCase();
-  if (!id) return false;
-  for (var i = 0; i < queue.length; i++) {
-    if (queue[i].id === id) { smsg('Already added: ' + id, 'err'); return false; }
-  }
+function setCoupon(id) {
+  id = id.trim().toUpperCase();
+  if (!id) return;
   var info = couponInfo(id);
-  queue.push({ id: id, type: info.type, val: info.val });
-  renderQ();
-  return true;
+  currentCoupon = { id:id, type:info.type, val:info.val };
+  g('cpId').textContent = id;
+  g('cpType').textContent = info.type;
+  g('couponPreview').className = 'coupon-preview show';
+  g('redeemBtn').disabled = false;
+  g('redeemBtn').textContent = '✅ Redeem ' + id + ' (' + info.type + ')';
+  smsg('Coupon ready — tap Redeem below.', 'ok');
 }
 
-function removeQ(i) { queue.splice(i, 1); renderQ(); }
-
-function getTotal() {
-  var t = 0;
-  for (var i = 0; i < queue.length; i++) t += queue[i].val;
-  return t;
-}
-
-function renderQ() {
-  var list = g('qlist');
-  var empty = g('qempty');
-  var tot = g('qtotal');
-  var btn = g('redeemBtn');
-  if (queue.length === 0) {
-    empty.style.display = 'block';
-    list.innerHTML = '';
-    tot.style.display = 'none';
-    btn.disabled = true;
-    btn.innerHTML = '✅ Redeem All Coupons';
-    return;
-  }
-  empty.style.display = 'none';
-  btn.disabled = false;
-  var total = getTotal();
-  tot.style.display = 'inline-block';
-  tot.textContent = 'Rs.' + total;
-  btn.innerHTML = '✅ Redeem All (Rs.' + total + ')';
-  var html = '';
-  for (var i = 0; i < queue.length; i++) {
-    html += '<div class="qitem">' +
-      '<div class="qinfo"><div class="qid">' + queue[i].id + '</div><div class="qtype">' + queue[i].type + '</div></div>' +
-      '<div class="qbtns">' +
-      '<button class="cpybtn" id="cb' + i + '" onclick="copyId(\'' + queue[i].id + '\',' + i + ')">Copy</button>' +
-      '<button class="rmbtn" onclick="removeQ(' + i + ')">X</button>' +
-      '</div></div>';
-  }
-  list.innerHTML = html;
-}
-
-function addMan() {
-  var inp = g('manInput');
-  var v = inp.value.trim();
+function doManual() {
+  var v = g('manInput').value.trim();
   if (!v) { smsg('Enter a Coupon ID first', 'err'); return; }
-  if (addQ(v)) { inp.value = ''; smsg('Added: ' + v.toUpperCase(), 'ok'); setTimeout(function() { clearSmsg(); }, 2500); }
+  setCoupon(v);
+  g('manInput').value = '';
 }
 
-function copyId(id, i) {
-  doCopy(id, function() {
-    var b = g('cb' + i);
-    if (b) { b.textContent = 'Copied!'; b.className = 'cpybtn ok'; setTimeout(function() { b.textContent = 'Copy'; b.className = 'cpybtn'; }, 2000); }
-  });
+function doRedeem() {
+  var name = g('staffName').value.trim();
+  if (!name) { rmsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
+  if (!currentCoupon) { rmsg('No coupon selected.', 'err'); return; }
+  var url = FORM_URL +
+    '&' + FIELD_COUPON + '=' + encodeURIComponent(currentCoupon.id) +
+    '&' + FIELD_STAFF  + '=' + encodeURIComponent(name);
+  currentCoupon = null;
+  g('couponPreview').className = 'coupon-preview';
+  g('redeemBtn').disabled = true;
+  g('redeemBtn').textContent = '✅ Redeem Coupon';
+  g('smsg').className = 'msg';
+  rmsg('Form opened — submit it, then come back to scan next coupon.', 'ok');
+  window.location.href = url;
 }
 
-
-function doCopy(text, cb) {
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).then(cb).catch(function() { fbCopy(text, cb); });
-  } else {
-    fbCopy(text, cb);
-  }
-}
-
-function fbCopy(text, cb) {
-  try {
-    var t = document.createElement('textarea');
-    t.value = text;
-    t.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
-    document.body.appendChild(t);
-    t.focus();
-    t.select();
-    document.execCommand('copy');
-    document.body.removeChild(t);
-    if (cb) cb();
-  } catch(e) {
-    window.prompt('Copy this ID:', text);
-    if (cb) cb();
-  }
-}
-
-function toggleTorch() {
-  if (!videoTrack) return;
-  torchOn = !torchOn;
-  videoTrack.applyConstraints({ advanced: [{ torch: torchOn }] })
-    .then(function() {
-      var btn = g('torchbtn');
-      btn.className = torchOn ? 'torchbtn on' : 'torchbtn';
-      btn.textContent = torchOn ? '🔦' : '🔦';
-    })
-    .catch(function() {
-      torchOn = false;
-      smsg('Torch not supported on this device', 'err');
-    });
-}
-
-function setZoom(val) {
-  if (!videoTrack) return;
-  videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(val) }] }).catch(function(){});
-}
-
-function tapFocus(e) {
-  if (!videoTrack) return;
-  var box = g('scanbox');
-  var rect = box.getBoundingClientRect();
-  var x = (e.clientX - rect.left) / rect.width;
-  var y = (e.clientY - rect.top) / rect.height;
-  // Show focus ring
-  var ring = g('focusring');
-  ring.style.left = (x * 100) + '%';
-  ring.style.top = (y * 100) + '%';
-  ring.style.display = 'block';
-  setTimeout(function() { ring.style.display = 'none'; }, 800);
-  // Apply focus point
-  videoTrack.applyConstraints({ advanced: [{ focusMode: 'single-shot', pointOfInterest: { x: x, y: y } }] }).catch(function(){});
-}
+function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
+function rmsg(t, c)  { var e = g('rmsg');  e.textContent = t; e.className = 'msg ' + c; }
 
 function startScan() {
+  var name = g('staffName').value.trim();
+  if (!name) { smsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
+  if (typeof jsQR === 'undefined') { smsg('QR library not loaded. Check internet and refresh.', 'err'); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { smsg('Camera not available.', 'err'); return; }
   smsg('Requesting camera...', 'ok');
-  if (typeof jsQR === 'undefined') {
-    smsg('QR library not loaded. Check internet and refresh.', 'err');
-    return;
-  }
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    smsg('Camera not available. Open via https:// in Chrome.', 'err');
-    return;
-  }
-  var constraints = {
-    video: {
-      facingMode: 'environment',
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-      advanced: [{ focusMode: 'continuous' }]
-    }
-  };
-  navigator.mediaDevices.getUserMedia(constraints)
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } })
     .then(function(s) {
       stream = s;
       videoTrack = s.getVideoTracks()[0];
-      // Apply continuous autofocus
-      if (videoTrack && videoTrack.applyConstraints) {
-        videoTrack.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function(){});
-      }
-      // Check zoom support and set slider max
+      if (videoTrack && videoTrack.applyConstraints)
+        videoTrack.applyConstraints({ advanced:[{ focusMode:'continuous' }] }).catch(function(){});
       if (videoTrack) {
         var caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
         if (caps.zoom) {
-          var slider = g('zoomSlider');
-          slider.min = caps.zoom.min || 1;
-          slider.max = Math.min(caps.zoom.max || 4, 4);
-          slider.value = caps.zoom.min || 1;
-          slider.style.display = 'block';
-        } else {
-          g('zoomSlider').style.display = 'none';
-        }
+          var sl = g('zoomSlider');
+          sl.min = caps.zoom.min || 1;
+          sl.max = Math.min(caps.zoom.max || 4, 4);
+          sl.value = caps.zoom.min || 1;
+        } else { g('zoomSlider').style.display = 'none'; }
       }
-      var vid = g('camvid');
-      vid.srcObject = stream;
-      vid.play();
-      // Reset torch button
+      g('camvid').srcObject = stream;
+      g('camvid').play();
       torchOn = false;
       g('torchbtn').className = 'torchbtn';
       g('overlay').className = 'overlay on';
       scanning = true;
       cvs = document.createElement('canvas');
       ctx = cvs.getContext('2d');
-      updateCount();
+      g('scancount').textContent = 'Ready to scan';
       raf = setInterval(doScan, 200);
-      smsg('Camera open! Hold QR code steady in the green box.', 'ok');
+      smsg('Camera open! Hold QR code steady.', 'ok');
     })
     .catch(function(e) {
-      if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
-        smsg('Camera blocked. Tap lock icon in address bar > Allow Camera > Refresh.', 'err');
-      } else if (e.name === 'NotFoundError') {
-        smsg('No camera found on device.', 'err');
-      } else {
-        smsg('Camera error: ' + e.name, 'err');
-      }
+      if (e.name === 'NotAllowedError') smsg('Camera blocked. Allow camera access and refresh.', 'err');
+      else if (e.name === 'NotFoundError') smsg('No camera found.', 'err');
+      else smsg('Camera error: ' + e.name, 'err');
     });
 }
 
@@ -385,112 +222,71 @@ function doScan() {
   if (!scanning) return;
   var v = g('camvid');
   if (v.readyState !== v.HAVE_ENOUGH_DATA || v.videoWidth === 0) return;
-
-  // Match canvas to video
   if (cvs.width !== v.videoWidth) { cvs.width = v.videoWidth; cvs.height = v.videoHeight; }
   ctx.drawImage(v, 0, 0);
-
-  // --- Attempt 1: Scan full frame ---
   var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
-  var result = jsQR(d.data, d.width, d.height, { inversionAttempts: 'attemptBoth' });
-
-  // --- Attempt 2: Scan center crop (where the green box points) ---
+  var result = jsQR(d.data, d.width, d.height, { inversionAttempts:'attemptBoth' });
   if (!result) {
-    var cx = Math.floor(cvs.width * 0.15);
-    var cy = Math.floor(cvs.height * 0.15);
-    var cw = Math.floor(cvs.width * 0.7);
-    var ch = Math.floor(cvs.height * 0.7);
-    var cropped = ctx.getImageData(cx, cy, cw, ch);
-    result = jsQR(cropped.data, cw, ch, { inversionAttempts: 'attemptBoth' });
+    var cx=Math.floor(cvs.width*0.15), cy=Math.floor(cvs.height*0.15);
+    var cw=Math.floor(cvs.width*0.7),  ch=Math.floor(cvs.height*0.7);
+    result = jsQR(ctx.getImageData(cx,cy,cw,ch).data, cw, ch, { inversionAttempts:'attemptBoth' });
   }
-
-  // --- Attempt 3: Boost contrast and retry ---
   if (!result) {
-    var imgd = ctx.getImageData(0, 0, cvs.width, cvs.height);
-    var px = imgd.data;
-    for (var i = 0; i < px.length; i += 4) {
-      // Convert to grayscale then boost contrast
-      var gray = 0.299 * px[i] + 0.587 * px[i+1] + 0.114 * px[i+2];
-      var contrast = (gray - 128) * 2.0 + 128;
-      contrast = contrast < 0 ? 0 : contrast > 255 ? 255 : contrast;
-      px[i] = px[i+1] = px[i+2] = contrast;
+    var imgd = ctx.getImageData(0,0,cvs.width,cvs.height), px = imgd.data;
+    for (var i=0; i<px.length; i+=4) {
+      var c = ((0.299*px[i]+0.587*px[i+1]+0.114*px[i+2])-128)*2+128;
+      px[i]=px[i+1]=px[i+2]= c<0?0:c>255?255:c;
     }
-    result = jsQR(px, cvs.width, cvs.height, { inversionAttempts: 'attemptBoth' });
+    result = jsQR(imgd.data, cvs.width, cvs.height, { inversionAttempts:'attemptBoth' });
   }
-
   if (result) {
     var now = Date.now();
     if (result.data !== lastCode || now - lastTime > 3000) {
-      lastCode = result.data;
-      lastTime = now;
+      lastCode = result.data; lastTime = now;
       var id = result.data;
-      try { var u = new URL(result.data); id = u.searchParams.get('id') || u.searchParams.get('coupon') || result.data; } catch(e) {}
-      if (addQ(id)) {
-        var b = g('scanbox');
-        b.style.borderColor = '#f1c40f';
-        b.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.78), 0 0 30px rgba(241,196,15,0.7)';
-        setTimeout(function() {
-          b.style.borderColor = '#2ecc71';
-          b.style.boxShadow = '0 0 0 9999px rgba(0,0,0,0.78)';
-        }, 600);
-        updateCount();
-      }
+      try { var u=new URL(result.data); id=u.searchParams.get('id')||u.searchParams.get('coupon')||result.data; } catch(e){}
+      g('scanbox').style.borderColor = '#f1c40f';
+      setTimeout(function(){ g('scanbox').style.borderColor='#2ecc71'; }, 600);
+      g('scancount').textContent = '✅ Scanned: ' + id;
+      stopScan();
+      setCoupon(id);
     }
-  }
-}
-
-function updateCount() {
-  var total = getTotal();
-  var sc = g('scancount');
-  if (queue.length === 0) {
-    sc.textContent = 'Camera open — scan multiple!';
-  } else {
-    sc.textContent = queue.length + ' coupon(s) scanned · Rs.' + total + ' — scan more!';
   }
 }
 
 function stopScan() {
   scanning = false;
   if (raf) { clearInterval(raf); raf = null; }
-  if (stream) { stream.getTracks().forEach(function(t) { t.stop(); }); stream = null; }
+  if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
   videoTrack = null; torchOn = false;
   g('torchbtn').className = 'torchbtn';
   g('zoomSlider').value = 1;
   g('overlay').className = 'overlay';
-  if (queue.length > 0) {
-    smsg(queue.length + ' coupon(s) ready · Rs.' + getTotal(), 'ok');
-  }
 }
 
-function startRedeem() {
-  var name = g('staffName').value.trim();
-  if (!name) { rmsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
-  if (queue.length === 0) { rmsg('No coupons in queue.', 'err'); return; }
-  openNextForm(0);
+function toggleTorch() {
+  if (!videoTrack) return;
+  torchOn = !torchOn;
+  videoTrack.applyConstraints({ advanced:[{ torch:torchOn }] })
+    .then(function(){ g('torchbtn').className = torchOn?'torchbtn on':'torchbtn'; })
+    .catch(function(){ torchOn=false; });
 }
 
-function openNextForm(index) {
-  var name = g('staffName').value.trim();
-  var coupon = queue[index];
-  var formUrl = REDEEM_FORM_URL +
-    '&r3d398d7bd1804693a922bf1e8e001f6e=' + encodeURIComponent(coupon.id) +
-    '&r110227d37e7648d595690d258ef4b077=' + encodeURIComponent(name);
-
-  try {
-    sessionStorage.setItem('redeemState', JSON.stringify({
-      queue: queue,
-      staffName: name,
-      nextIndex: index + 1,
-      total: queue.length
-    }));
-  } catch(e) {}
-
-  window.location.href = formUrl;
+function setZoom(val) {
+  if (!videoTrack) return;
+  videoTrack.applyConstraints({ advanced:[{ zoom:parseFloat(val) }] }).catch(function(){});
 }
 
-function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
-function clearSmsg() { g('smsg').className = 'msg'; }
-function rmsg(t, c) { var e = g('rmsg'); e.textContent = t; e.className = 'msg ' + c; }
+function tapFocus(e) {
+  if (!videoTrack) return;
+  var rect = g('scanbox').getBoundingClientRect();
+  var x=(e.clientX-rect.left)/rect.width, y=(e.clientY-rect.top)/rect.height;
+  var ring=g('focusring');
+  ring.style.left=(x*100)+'%'; ring.style.top=(y*100)+'%';
+  ring.style.display='block';
+  setTimeout(function(){ ring.style.display='none'; }, 800);
+  videoTrack.applyConstraints({ advanced:[{ focusMode:'single-shot', pointOfInterest:{x:x,y:y} }] }).catch(function(){});
+}
 </script>
 </body>
 </html>
