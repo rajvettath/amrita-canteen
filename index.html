@@ -128,7 +128,7 @@ input:focus { border-color:#2e86c1; }
   <button class="donebtn" onclick="stopScan()">✅ Done Scanning</button>
 </div>
 
-<script src="jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
 var FORMS_URL = 'https://forms.microsoft.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUQTJaUk81SVo1RzBMWTZBMzZSNTdZSlcySC4u';
 var queue = [];
@@ -465,7 +465,12 @@ function redeemAll(index, successCount, errors) {
     headers: { 'Accept': 'application/json;odata=nometadata' },
     credentials: 'include'
   })
-  .then(function(r) { return r.json(); })
+  .then(function(r) {
+    if (r.status === 401 || r.status === 403) {
+      throw new Error('Not signed into SharePoint. Open SharePoint in this browser first, then retry.');
+    }
+    return r.json();
+  })
   .then(function(data) {
     if (!data.value || data.value.length === 0) {
       errors.push(coupon.id + ' (not found)');
@@ -475,6 +480,13 @@ function redeemAll(index, successCount, errors) {
     var item = data.value[0];
     var itemId = item.Id;
     var timesUsed = item.Times_Used || 0;
+
+    // FIX: Block already-redeemed coupons
+    if (timesUsed >= 1) {
+      errors.push(coupon.id + ' (already redeemed)');
+      redeemAll(index + 1, successCount, errors);
+      return;
+    }
 
     // Step 2: Get request digest for write operations
     return fetch(siteUrl + '/_api/contextinfo', {
@@ -497,7 +509,11 @@ function redeemAll(index, successCount, errors) {
           'IF-MATCH': '*'
         },
         credentials: 'include',
-        body: JSON.stringify({ Times_Used: timesUsed + 1 })
+        body: JSON.stringify({
+          Times_Used: timesUsed + 1,
+          Redeemed_By: g('staffName').value.trim(),
+          Redeemed_On: new Date().toISOString()
+        })
       });
     })
     .then(function(r) {
@@ -511,7 +527,7 @@ function redeemAll(index, successCount, errors) {
     });
   })
   .catch(function(err) {
-    errors.push(coupon.id + ' (error)');
+    var msg = err && err.message ? err.message : 'network error'; errors.push(coupon.id + ' (' + msg + ')');
     redeemAll(index + 1, successCount, errors);
   });
 }
