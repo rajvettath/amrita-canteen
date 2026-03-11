@@ -104,6 +104,7 @@ input:focus { border-color:#2e86c1; }
 <div class="card">
   <div class="ctitle">✅ STEP 3 — REDEEM ALL</div>
   <button class="obtn" id="redeemBtn" onclick="startRedeem()" disabled>✅ Redeem All Coupons</button>
+  <div style="font-size:12px;color:#7f8c8d;text-align:center;margin-top:8px;line-height:1.6;">A form will open for each coupon.<br>Submit each form to confirm redemption.</div>
   <div class="msg" id="rmsg"></div>
 </div>
 
@@ -130,7 +131,7 @@ input:focus { border-color:#2e86c1; }
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-var FORMS_URL = 'https://forms.microsoft.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUQTJaUk81SVo1RzBMWTZBMzZSNTdZSlcySC4u';
+var REDEEM_FORM_URL = 'https://forms.office.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUNjBJNFFESk1GTE1JTVBMQlVESkg5VEFHVy4u';
 var queue = [];
 var stream = null;
 var scanning = false;
@@ -430,106 +431,56 @@ function startRedeem() {
   var name = g('staffName').value.trim();
   if (!name) { rmsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
   if (queue.length === 0) { rmsg('No coupons in queue.', 'err'); return; }
-  g('redeemBtn').disabled = true;
-  g('redeemBtn').innerHTML = '⏳ Redeeming...';
-  rmsg('Redeeming ' + queue.length + ' coupon(s)...', 'ok');
-  redeemAll(0, 0, []);
+  openNextForm(0);
 }
 
-function redeemAll(index, successCount, errors) {
+function openNextForm(index) {
   if (index >= queue.length) {
-    // All done
-    g('redeemBtn').style.display = 'block';
-    g('redeemBtn').disabled = true;
-    if (errors.length === 0) {
-      rmsg('✅ All ' + successCount + ' coupon(s) redeemed! Rs.' + getTotal() + ' discount applied.', 'ok');
-    } else {
-      rmsg('⚠️ ' + successCount + ' redeemed. Failed: ' + errors.join(', '), 'err');
-    }
+    rmsg('✅ All ' + queue.length + ' form(s) opened! Submit each to complete redemption.', 'ok');
     queue = [];
     renderQ();
+    g('redeemBtn').disabled = true;
     return;
   }
-
   var coupon = queue[index];
-  rmsg('Redeeming ' + (index + 1) + ' of ' + queue.length + ': ' + coupon.id + '...', 'ok');
-
-  var siteUrl = 'https://amritahealth.sharepoint.com/sites/foodcouponsmicrosoftlist';
-  var listName = 'Coupon List';
-
-  // Step 1: Get the item ID and current Times Used
-  var filterUrl = siteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items?$filter=Title eq '" + coupon.id + "'&$select=Id,Times_Used,Title";
-
-  fetch(filterUrl, {
-    method: 'GET',
-    headers: { 'Accept': 'application/json;odata=nometadata' },
-    credentials: 'include'
-  })
-  .then(function(r) {
-    if (r.status === 401 || r.status === 403) {
-      throw new Error('Not signed into SharePoint. Open SharePoint in this browser first, then retry.');
+  var name = g('staffName').value.trim();
+  // Build pre-filled form URL
+  // r2625565 = Coupon ID field, r2625566 = Staff Name field (approximate — user must verify)
+  var formUrl = REDEEM_FORM_URL +
+    '&r3d398d7bd1804693a922bf1e8e001f6e=' + encodeURIComponent(coupon.id) +
+    '&r110227d37e7648d595690d258ef4b077=' + encodeURIComponent(name);
+  window.open(formUrl, '_blank');
+  rmsg('Opened form ' + (index + 1) + ' of ' + queue.length + ' for ' + coupon.id + '. Submit it, then tap Next.', 'ok');
+  // Show Next button if more remain
+  if (index + 1 < queue.length) {
+    var nextBtn = document.getElementById('nextFormBtn');
+    if (!nextBtn) {
+      nextBtn = document.createElement('button');
+      nextBtn.id = 'nextFormBtn';
+      nextBtn.className = 'blubtn';
+      nextBtn.style.marginTop = '8px';
+      nextBtn.textContent = 'Next Coupon (' + (index + 2) + '/' + queue.length + ') →';
+      nextBtn.onclick = function() {
+        nextBtn.remove();
+        openNextForm(index + 1);
+      };
+      g('rmsg').after(nextBtn);
+    } else {
+      nextBtn.textContent = 'Next Coupon (' + (index + 2) + '/' + queue.length + ') →';
+      nextBtn.onclick = function() {
+        nextBtn.remove();
+        openNextForm(index + 1);
+      };
     }
-    return r.json();
-  })
-  .then(function(data) {
-    if (!data.value || data.value.length === 0) {
-      errors.push(coupon.id + ' (not found)');
-      redeemAll(index + 1, successCount, errors);
-      return;
-    }
-    var item = data.value[0];
-    var itemId = item.Id;
-    var timesUsed = item.Times_Used || 0;
-
-    // FIX: Block already-redeemed coupons
-    if (timesUsed >= 1) {
-      errors.push(coupon.id + ' (already redeemed)');
-      redeemAll(index + 1, successCount, errors);
-      return;
-    }
-
-    // Step 2: Get request digest for write operations
-    return fetch(siteUrl + '/_api/contextinfo', {
-      method: 'POST',
-      headers: { 'Accept': 'application/json;odata=nometadata' },
-      credentials: 'include'
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(ctx) {
-      var digest = ctx.FormDigestValue;
-
-      // Step 3: Update Times Used
-      return fetch(siteUrl + "/_api/web/lists/getbytitle('" + listName + "')/items(" + itemId + ")", {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json;odata=nometadata',
-          'Content-Type': 'application/json;odata=nometadata',
-          'X-RequestDigest': digest,
-          'X-HTTP-Method': 'MERGE',
-          'IF-MATCH': '*'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          Times_Used: timesUsed + 1,
-          Redeemed_By: g('staffName').value.trim(),
-          Redeemed_On: new Date().toISOString()
-        })
-      });
-    })
-    .then(function(r) {
-      if (r.ok || r.status === 204) {
-        successCount++;
-        redeemAll(index + 1, successCount, errors);
-      } else {
-        errors.push(coupon.id + ' (update failed)');
-        redeemAll(index + 1, successCount, errors);
-      }
-    });
-  })
-  .catch(function(err) {
-    var msg = err && err.message ? err.message : 'network error'; errors.push(coupon.id + ' (' + msg + ')');
-    redeemAll(index + 1, successCount, errors);
-  });
+  } else {
+    var nb = document.getElementById('nextFormBtn');
+    if (nb) nb.remove();
+    setTimeout(function() {
+      queue = [];
+      renderQ();
+      g('redeemBtn').disabled = true;
+    }, 1000);
+  }
 }
 
 function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
