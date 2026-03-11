@@ -447,8 +447,8 @@ function openNextForm(index) {
   // Build pre-filled form URL
   // r2625565 = Coupon ID field, r2625566 = Staff Name field (approximate — user must verify)
   var formUrl = REDEEM_FORM_URL +
-    '&r3d398d7bd1804693a922bf1e8e001f6e=' + encodeURIComponent(coupon.id) +
-    '&r110227d37e7648d595690d258ef4b077=' + encodeURIComponent(name);
+    '&r110227d37e7648d595690d258ef4b077=' + encodeURIComponent(coupon.id) +
+    '&r3d398d7bd1804693a922bf1e8e001f6e=' + encodeURIComponent(name);
   window.open(formUrl, '_blank');
   rmsg('Opened form ' + (index + 1) + ' of ' + queue.length + ' for ' + coupon.id + '. Submit it, then tap Next.', 'ok');
   // Show Next button if more remain
