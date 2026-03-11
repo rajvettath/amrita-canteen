@@ -146,6 +146,41 @@ var videoTrack = null;
 
 function g(id) { return document.getElementById(id); }
 
+// Restore state after returning from form
+(function restoreState() {
+  try {
+    var saved = sessionStorage.getItem('redeemState');
+    if (!saved) return;
+    var state = JSON.parse(saved);
+    sessionStorage.removeItem('redeemState');
+    queue = state.queue || [];
+    if (state.staffName) {
+      // Restore after DOM loads
+      window.addEventListener('DOMContentLoaded', function() {
+        g('staffName').value = state.staffName;
+        renderQ();
+        if (state.nextIndex < queue.length) {
+          rmsg('✅ Form ' + state.nextIndex + ' submitted! Tap Next to continue.', 'ok');
+          var nextBtn = document.createElement('button');
+          nextBtn.id = 'nextFormBtn';
+          nextBtn.className = 'blubtn';
+          nextBtn.style.marginTop = '8px';
+          nextBtn.textContent = '➡️ Next Coupon (' + (state.nextIndex + 1) + ' of ' + state.total + ')';
+          nextBtn.onclick = function() {
+            nextBtn.remove();
+            openNextForm(state.nextIndex);
+          };
+          g('rmsg').insertAdjacentElement('afterend', nextBtn);
+        } else {
+          rmsg('✅ All ' + state.total + ' coupon(s) redeemed!', 'ok');
+          queue = [];
+          renderQ();
+        }
+      });
+    }
+  } catch(e) {}
+})();
+
 function couponInfo(id) {
   var parts = id.split('-');
   var n = parseInt(parts[parts.length - 1]) || 0;
@@ -431,16 +466,26 @@ function startRedeem() {
   var name = g('staffName').value.trim();
   if (!name) { rmsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
   if (queue.length === 0) { rmsg('No coupons in queue.', 'err'); return; }
-  for (var i = 0; i < queue.length; i++) {
-    var coupon = queue[i];
-    var formUrl = REDEEM_FORM_URL +
-      '&r110227d37e7648d595690d258ef4b077=' + encodeURIComponent(coupon.id) +
-      '&r3d398d7bd1804693a922bf1e8e001f6e=' + encodeURIComponent(name);
-    window.open(formUrl, '_blank');
-  }
-  rmsg('✅ Opened ' + queue.length + ' form(s). Submit each tab to redeem!', 'ok');
-  queue = [];
-  renderQ();
+  openNextForm(0);
+}
+
+function openNextForm(index) {
+  var name = g('staffName').value.trim();
+  var coupon = queue[index];
+  var formUrl = REDEEM_FORM_URL +
+    '&r3d398d7bd1804693a922bf1e8e001f6e=' + encodeURIComponent(coupon.id) +
+    '&r110227d37e7648d595690d258ef4b077=' + encodeURIComponent(name);
+
+  try {
+    sessionStorage.setItem('redeemState', JSON.stringify({
+      queue: queue,
+      staffName: name,
+      nextIndex: index + 1,
+      total: queue.length
+    }));
+  } catch(e) {}
+
+  window.location.href = formUrl;
 }
 
 function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
