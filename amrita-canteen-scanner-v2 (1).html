@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Amrita Canteen Redeem</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { width: 100%; overflow-x: hidden; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #e8f5e9;
+  color: #1b2631;
+  padding: 16px 12px 60px;
+  width: 100%;
+  overflow-x: hidden;
+}
+.logo { text-align:center; font-size:48px; margin:8px 0; }
+h1 { text-align:center; font-size:22px; color:#1a5276; margin:4px 0 2px; }
+.sub { text-align:center; font-size:13px; color:#7f8c8d; margin-bottom:18px; }
+.card { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; border:2px solid #c8e6c9; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
+.ctitle { font-size:14px; font-weight:bold; color:#1a5276; border-bottom:2px solid #d6eaf8; padding-bottom:8px; margin-bottom:12px; }
+input[type=text] { width:100%; padding:13px 12px; font-size:16px; border:2px solid #aed6f1; border-radius:10px; background:#f4f9fd; color:#1b2631; font-family:Arial,Helvetica,sans-serif; outline:none; display:block; -webkit-appearance:none; }
+input[type=text]:focus { border-color:#2e86c1; }
+.gbtn { display:block; width:100%; padding:15px; background:#1e8449; color:#fff; font-size:17px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; text-align:center; font-family:Arial,Helvetica,sans-serif; margin-bottom:10px; -webkit-appearance:none; }
+.obtn { display:block; width:100%; padding:17px; background:#e67e22; color:#fff; font-size:17px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; -webkit-appearance:none; }
+.obtn:disabled { background:#aab7b8; }
+.div { display:flex; align-items:center; gap:8px; margin:4px 0 10px; }
+.divl { flex:1; height:2px; background:#d5e8d4; }
+.divt { font-size:12px; color:#95a5a6; font-weight:bold; }
+.row { display:flex; gap:8px; }
+.row input { flex:1; min-width:0; margin:0; }
+.bbtn { padding:13px 16px; background:#2e86c1; color:#fff; font-size:15px; font-weight:bold; border:none; border-radius:10px; cursor:pointer; white-space:nowrap; font-family:Arial,Helvetica,sans-serif; -webkit-appearance:none; flex-shrink:0; }
+.msg { display:none; padding:12px; border-radius:10px; font-size:14px; font-weight:bold; margin-top:10px; text-align:center; line-height:1.5; }
+.msg.ok { display:block; background:#eafaf1; border:2px solid #a9dfbf; color:#1e8449; }
+.msg.err { display:block; background:#fdedec; border:2px solid #f5b7b1; color:#c0392b; }
+.coupon-preview { background:#eafaf1; border:2px solid #a9dfbf; border-radius:12px; padding:14px 16px; margin-top:12px; display:none; }
+.coupon-preview.show { display:block; }
+.cp-id { font-size:18px; font-weight:bold; color:#1e8449; margin-bottom:4px; word-break:break-all; }
+.cp-type { font-size:13px; color:#7f8c8d; }
+.footer { text-align:center; color:#aab7b8; font-size:12px; margin-top:16px; }
+
+/* FULLSCREEN CAMERA OVERLAY — exact pattern from working app */
+.overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:999; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
+.overlay.on { display:flex; }
+.scanbox { width:290px; height:290px; border:4px solid #2ecc71; border-radius:20px; position:relative; margin-bottom:18px; box-shadow:0 0 0 9999px rgba(0,0,0,0.78); transition:border-color 0.3s; }
+.scanline { position:absolute; left:8px; right:8px; height:3px; background:linear-gradient(90deg,transparent,#2ecc71,transparent); animation:sl 2s ease-in-out infinite; }
+#camvid { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:16px; cursor:crosshair; }
+.scanlabel { color:#fff; font-size:15px; font-weight:bold; text-align:center; margin-bottom:4px; }
+.scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:12px; min-height:20px; }
+.scan-controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:14px; width:100%; max-width:300px; }
+.torchbtn { padding:12px 18px; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border:2px solid rgba(255,255,255,0.3); border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
+.torchbtn.on { background:#f1c40f; color:#1b2631; border-color:#f1c40f; }
+.zoom-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.zoom-label { color:#fff; font-size:11px; }
+#zoomSlider { width:100%; accent-color:#2ecc71; }
+.tap-hint { color:rgba(255,255,255,0.6); font-size:12px; text-align:center; margin-bottom:10px; }
+.focusring { position:absolute; width:60px; height:60px; border:3px solid #f1c40f; border-radius:8px; pointer-events:none; display:none; transform:translate(-50%,-50%); }
+.donebtn { padding:14px 36px; background:#fff; color:#1b2631; font-size:15px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
+@keyframes sl { 0%,100%{top:8px} 50%{top:calc(100% - 12px)} }
+</style>
+</head>
+<body>
+
+<div class="logo">🍽️</div>
+<h1>Amrita Canteen</h1>
+<p class="sub">Staff Coupon Redemption</p>
+
+<div class="card">
+  <div class="ctitle">👤 STEP 1 — YOUR NAME</div>
+  <input type="text" id="staffName" placeholder="Enter your name" autocomplete="off" />
+</div>
+
+<div class="card">
+  <div class="ctitle">📷 STEP 2 — SCAN OR TYPE COUPON</div>
+  <button class="gbtn" onclick="startScan()">📷 Scan QR Code</button>
+  <div class="div"><div class="divl"></div><span class="divt">or enter manually</span><div class="divl"></div></div>
+  <div class="row">
+    <input type="text" id="manInput" placeholder="e.g. PRIYA-SHARMA-9876543210" autocomplete="off" onkeydown="if(event.key==='Enter')doManual()" />
+    <button class="bbtn" onclick="doManual()">+ Add</button>
+  </div>
+  <div class="coupon-preview" id="couponPreview">
+    <div class="cp-id" id="cpId"></div>
+    <div class="cp-type">✅ Coupon ready — tap Redeem below</div>
+  </div>
+  <div class="msg" id="smsg"></div>
+</div>
+
+<div class="card">
+  <div class="ctitle">✅ STEP 3 — REDEEM</div>
+  <button class="obtn" id="redeemBtn" onclick="doRedeem()" disabled>✅ Open Redemption Form</button>
+  <div class="msg" id="rmsg"></div>
+</div>
+
+<div class="footer">Amrita Canteen · Staff use only · Amrita Institute of Medical Sciences</div>
+
+<!-- FULLSCREEN CAMERA OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="scanbox" id="scanbox" onclick="tapFocus(event)">
+    <video id="camvid" autoplay playsinline muted></video>
+    <div class="scanline"></div>
+    <div class="focusring" id="focusring"></div>
+  </div>
+  <p class="scanlabel">Point QR code at the green box</p>
+  <p class="tap-hint">Tap box to focus</p>
+  <p class="scancount" id="scancount">Ready to scan</p>
+  <div class="scan-controls">
+    <button class="torchbtn" id="torchbtn" onclick="toggleTorch()">🔦</button>
+    <div class="zoom-wrap">
+      <span class="zoom-label">Zoom</span>
+      <input type="range" id="zoomSlider" min="1" max="4" step="0.1" value="1" oninput="setZoom(this.value)" />
+    </div>
+  </div>
+  <button class="donebtn" onclick="stopScan()">✅ Done</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script>
+// ── UPDATED CONFIG ──────────────────────────────────────────────────────
+var FORM_URL     = 'https://forms.office.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUMkIxOFpaM1RFMERKWTlLWDJMMk9GRE1BTi4u';
+var FIELD_COUPON = 'r6ca98d84fc50447f9d89b364bc718a62';
+var FIELD_STAFF  = 'rf3c0eb06ae6349a19f5ad578fb21b712';
+// ───────────────────────────────────────────────────────────────────────
+
+var currentCoupon = null;
+var stream = null;
+var scanning = false;
+var raf = null;
+var lastCode = '';
+var lastTime = 0;
+var cvs = null;
+var ctx = null;
+var torchOn = false;
+var videoTrack = null;
+
+function g(id) { return document.getElementById(id); }
+
+function setCoupon(id) {
+  id = id.trim().toUpperCase();
+  if (!id) return;
+  currentCoupon = id;
+  g('cpId').textContent = id;
+  g('couponPreview').className = 'coupon-preview show';
+  g('redeemBtn').disabled = false;
+  g('redeemBtn').textContent = '✅ Open Form for: ' + id;
+  smsg('Coupon ready — tap Redeem below.', 'ok');
+}
+
+function doManual() {
+  var v = g('manInput').value.trim();
+  if (!v) { smsg('Enter a Coupon ID first', 'err'); return; }
+  setCoupon(v);
+  g('manInput').value = '';
+}
+
+function doRedeem() {
+  var name = g('staffName').value.trim();
+  if (!name) { rmsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
+  if (!currentCoupon) { rmsg('No coupon selected.', 'err'); return; }
+  var url = FORM_URL +
+    '&' + FIELD_COUPON + '=' + encodeURIComponent(currentCoupon) +
+    '&' + FIELD_STAFF  + '=' + encodeURIComponent(name);
+  currentCoupon = null;
+  g('couponPreview').className = 'coupon-preview';
+  g('redeemBtn').disabled = true;
+  g('redeemBtn').textContent = '✅ Open Redemption Form';
+  g('smsg').className = 'msg';
+  rmsg('Form opened — submit it, then come back to scan next coupon.', 'ok');
+  window.location.href = url;
+}
+
+function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
+function rmsg(t, c)  { var e = g('rmsg');  e.textContent = t; e.className = 'msg ' + c; }
+
+function startScan() {
+  var name = g('staffName').value.trim();
+  if (!name) { smsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
+  if (typeof jsQR === 'undefined') { smsg('QR library not loaded. Check internet and refresh.', 'err'); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { smsg('Camera not available on this browser.', 'err'); return; }
+  smsg('Requesting camera...', 'ok');
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } })
+    .then(function(s) {
+      stream = s;
+      videoTrack = s.getVideoTracks()[0];
+      if (videoTrack && videoTrack.applyConstraints)
+        videoTrack.applyConstraints({ advanced:[{ focusMode:'continuous' }] }).catch(function(){});
+      if (videoTrack) {
+        var caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+        if (caps.zoom) {
+          var sl = g('zoomSlider');
+          sl.min = caps.zoom.min || 1;
+          sl.max = Math.min(caps.zoom.max || 4, 4);
+          sl.value = caps.zoom.min || 1;
+        } else { g('zoomSlider').style.display = 'none'; }
+      }
+      g('camvid').srcObject = stream;
+      g('camvid').play();
+      torchOn = false;
+      g('torchbtn').className = 'torchbtn';
+      g('overlay').className = 'overlay on';
+      scanning = true;
+      cvs = document.createElement('canvas');
+      ctx = cvs.getContext('2d');
+      g('scancount').textContent = 'Ready to scan';
+      raf = setInterval(doScan, 200);
+      smsg('Camera open! Hold QR code steady.', 'ok');
+    })
+    .catch(function(e) {
+      if (e.name === 'NotAllowedError') smsg('Camera blocked. Allow camera access and refresh.', 'err');
+      else if (e.name === 'NotFoundError') smsg('No camera found.', 'err');
+      else smsg('Camera error: ' + e.name, 'err');
+    });
+}
+
+function doScan() {
+  if (!scanning) return;
+  var v = g('camvid');
+  if (v.readyState !== v.HAVE_ENOUGH_DATA || v.videoWidth === 0) return;
+  if (cvs.width !== v.videoWidth) { cvs.width = v.videoWidth; cvs.height = v.videoHeight; }
+  ctx.drawImage(v, 0, 0);
+  var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
+  var result = jsQR(d.data, d.width, d.height, { inversionAttempts:'attemptBoth' });
+  if (!result) {
+    var cx=Math.floor(cvs.width*0.15), cy=Math.floor(cvs.height*0.15);
+    var cw=Math.floor(cvs.width*0.7),  ch=Math.floor(cvs.height*0.7);
+    result = jsQR(ctx.getImageData(cx,cy,cw,ch).data, cw, ch, { inversionAttempts:'attemptBoth' });
+  }
+  if (!result) {
+    var imgd = ctx.getImageData(0,0,cvs.width,cvs.height), px = imgd.data;
+    for (var i=0; i<px.length; i+=4) {
+      var c = ((0.299*px[i]+0.587*px[i+1]+0.114*px[i+2])-128)*2+128;
+      px[i]=px[i+1]=px[i+2]= c<0?0:c>255?255:c;
+    }
+    result = jsQR(imgd.data, cvs.width, cvs.height, { inversionAttempts:'attemptBoth' });
+  }
+  if (result) {
+    var now = Date.now();
+    if (result.data !== lastCode || now - lastTime > 3000) {
+      lastCode = result.data; lastTime = now;
+      var id = result.data;
+      try { var u=new URL(result.data); id=u.searchParams.get('id')||u.searchParams.get('coupon')||result.data; } catch(e){}
+      g('scanbox').style.borderColor = '#f1c40f';
+      setTimeout(function(){ g('scanbox').style.borderColor='#2ecc71'; }, 600);
+      g('scancount').textContent = '✅ Scanned: ' + id;
+      stopScan();
+      setCoupon(id);
+    }
+  }
+}
+
+function stopScan() {
+  scanning = false;
+  if (raf) { clearInterval(raf); raf = null; }
+  if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
+  videoTrack = null; torchOn = false;
+  g('torchbtn').className = 'torchbtn';
+  g('zoomSlider').value = 1;
+  g('overlay').className = 'overlay';
+}
+
+function toggleTorch() {
+  if (!videoTrack) return;
+  torchOn = !torchOn;
+  videoTrack.applyConstraints({ advanced:[{ torch:torchOn }] })
+    .then(function(){ g('torchbtn').className = torchOn?'torchbtn on':'torchbtn'; })
+    .catch(function(){ torchOn=false; });
+}
+
+function setZoom(val) {
+  if (!videoTrack) return;
+  videoTrack.applyConstraints({ advanced:[{ zoom:parseFloat(val) }] }).catch(function(){});
+}
+
+function tapFocus(e) {
+  if (!videoTrack) return;
+  var rect = g('scanbox').getBoundingClientRect();
+  var x=(e.clientX-rect.left)/rect.width, y=(e.clientY-rect.top)/rect.height;
+  var ring=g('focusring');
+  ring.style.left=(x*100)+'%'; ring.style.top=(y*100)+'%';
+  ring.style.display='block';
+  setTimeout(function(){ ring.style.display='none'; }, 800);
+  videoTrack.applyConstraints({ advanced:[{ focusMode:'single-shot', pointOfInterest:{x:x,y:y} }] }).catch(function(){});
+}
+
+// Reset when returning via back button after form submission
+window.addEventListener('pageshow', function(e) {
+  if (e.persisted) {
+    currentCoupon = null;
+    g('couponPreview').className = 'coupon-preview';
+    g('redeemBtn').disabled = true;
+    g('redeemBtn').textContent = '✅ Open Redemption Form';
+    g('smsg').className = 'msg';
+  }
+});
+</script>
+</body>
+</html>
