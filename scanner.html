@@ -19,7 +19,9 @@ body {
 h1 { text-align:center; font-size:22px; color:#1a5276; margin:4px 0 2px; }
 .sub { text-align:center; font-size:13px; color:#7f8c8d; margin-bottom:18px; }
 .card { background:#fff; border-radius:14px; padding:16px; margin-bottom:12px; border:2px solid #c8e6c9; box-shadow:0 2px 8px rgba(0,0,0,0.07); }
-.ctitle { font-size:14px; font-weight:bold; color:#1a5276; border-bottom:2px solid #d6eaf8; padding-bottom:8px; margin-bottom:12px; }
+.ctitle { font-size:14px; font-weight:bold; color:#1a5276; border-bottom:2px solid #d6eaf8; padding-bottom:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+.clearbtn { font-size:11px; color:#7f8c8d; background:none; border:1px solid #d6eaf8; padding:4px 10px; border-radius:6px; cursor:pointer; font-family:inherit; }
+.clearbtn:hover { background:#f4f9fd; }
 input[type=text] { width:100%; padding:13px 12px; font-size:16px; border:2px solid #aed6f1; border-radius:10px; background:#f4f9fd; color:#1b2631; font-family:Arial,Helvetica,sans-serif; outline:none; display:block; -webkit-appearance:none; }
 input[type=text]:focus { border-color:#2e86c1; }
 .gbtn { display:block; width:100%; padding:15px; background:#1e8449; color:#fff; font-size:17px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; text-align:center; font-family:Arial,Helvetica,sans-serif; margin-bottom:10px; -webkit-appearance:none; }
@@ -39,6 +41,8 @@ input[type=text]:focus { border-color:#2e86c1; }
 .cp-id { font-size:18px; font-weight:bold; color:#1e8449; margin-bottom:4px; word-break:break-all; }
 .cp-type { font-size:13px; color:#7f8c8d; }
 .footer { text-align:center; color:#aab7b8; font-size:12px; margin-top:16px; }
+.last-redemption { background:#fffde7; border:1px solid #fff59d; border-radius:8px; padding:10px 14px; margin-top:10px; font-size:13px; color:#827717; display:none; }
+.last-redemption.show { display:block; }
 
 /* FULLSCREEN CAMERA OVERLAY */
 .overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:999; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
@@ -71,12 +75,15 @@ input[type=text]:focus { border-color:#2e86c1; }
 <p class="sub">Staff Coupon Redemption</p>
 
 <div class="card">
-  <div class="ctitle">👤 STEP 1 — YOUR NAME</div>
-  <input type="text" id="staffName" placeholder="Enter your name" autocomplete="off" />
+  <div class="ctitle">
+    <span>👤 STEP 1 — YOUR NAME</span>
+    <button class="clearbtn" onclick="clearStaffName()" id="clearNameBtn" style="display:none;">Clear</button>
+  </div>
+  <input type="text" id="staffName" placeholder="Enter your name (saved for the shift)" autocomplete="off" oninput="onStaffNameInput()" />
 </div>
 
 <div class="card">
-  <div class="ctitle">📷 STEP 2 — SCAN OR TYPE COUPON</div>
+  <div class="ctitle"><span>📷 STEP 2 — SCAN OR TYPE COUPON</span></div>
   <button class="gbtn" onclick="startScan()">📷 Scan QR Code</button>
   <div class="div"><div class="divl"></div><span class="divt">or enter manually</span><div class="divl"></div></div>
   <div class="row">
@@ -88,10 +95,11 @@ input[type=text]:focus { border-color:#2e86c1; }
     <div class="cp-type">✅ Coupon ready — tap Redeem below</div>
   </div>
   <div class="msg" id="smsg"></div>
+  <div class="last-redemption" id="lastRedemption"></div>
 </div>
 
 <div class="card">
-  <div class="ctitle">✅ STEP 3 — REDEEM</div>
+  <div class="ctitle"><span>✅ STEP 3 — REDEEM</span></div>
   <button class="obtn" id="redeemBtn" onclick="doRedeem()" disabled>✅ Open Redemption Form</button>
   <div class="msg" id="rmsg"></div>
 </div>
@@ -128,10 +136,10 @@ var FORM_URL     = 'https://forms.office.com/Pages/ResponsePage.aspx?id=xt9vkZB1
 var FIELD_COUPON = 'r6ca98d84fc50447f9d89b364bc718a62';
 var FIELD_STAFF  = 'rf3c0eb06ae6349a19f5ad578fb21b712';
 
-// Coupon ID format: NAME(-NAME...)-10DIGITPHONE
-// Examples that match:    DEVADAS-S-9446875192, RAJ-VH-8943699999, MJ-SAJIV-7012751251, PRIYA-SHARMA-9876543210
-// Examples that REJECT:   UPI://PAY?..., https://anything, plain numbers, anything with spaces
+// Coupon ID format
 var COUPON_REGEX = /^[A-Z][A-Z0-9\-]*-\d{10}$/;
+
+// In-memory storage keys (sessionStorage avoided per env restrictions; we use plain vars)
 // ───────────────────────────────────────────────────────────────────────
 
 var currentCoupon = null;
@@ -157,23 +165,21 @@ var trackCapabilities = null;
 // Reject feedback throttling
 var lastRejectTime = 0;
 
+// NEW: track last redemption for "back from form" UX
+var lastRedeemedCoupon = null;
+var lastRedeemedTime = 0;
+
 function g(id) { return document.getElementById(id); }
 
-// ── NEW: extract & validate coupon ID from raw QR data ────────────────
 function extractCouponId(rawData) {
   if (!rawData) return null;
   var candidate = String(rawData).trim();
-
-  // If it's a URL, try to pull ?id=... or ?coupon=... param
   try {
     var u = new URL(candidate);
     var fromUrl = u.searchParams.get('id') || u.searchParams.get('coupon');
     if (fromUrl) candidate = fromUrl;
-  } catch(e) { /* not a URL, use as-is */ }
-
+  } catch(e) {}
   candidate = candidate.trim().toUpperCase();
-
-  // Must match the strict coupon format
   if (COUPON_REGEX.test(candidate)) return candidate;
   return null;
 }
@@ -181,7 +187,6 @@ function extractCouponId(rawData) {
 function setCoupon(id) {
   id = id.trim().toUpperCase();
   if (!id) return;
-  // Validate manually-entered IDs too
   if (!COUPON_REGEX.test(id)) {
     smsg('Invalid format. Expected: NAME-NAME-PHONE (e.g. PRIYA-SHARMA-9876543210)', 'err');
     return;
@@ -201,21 +206,64 @@ function doManual() {
   if (currentCoupon) g('manInput').value = '';
 }
 
+// ── UPDATED: doRedeem now resets UI BEFORE leaving ──────────────────
 function doRedeem() {
   var name = g('staffName').value.trim();
   if (!name) { rmsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
   if (!currentCoupon) { rmsg('No coupon selected.', 'err'); return; }
+
+  var couponBeingRedeemed = currentCoupon;
   var url = FORM_URL +
-    '&' + FIELD_COUPON + '=' + encodeURIComponent(currentCoupon) +
+    '&' + FIELD_COUPON + '=' + encodeURIComponent(couponBeingRedeemed) +
     '&' + FIELD_STAFF  + '=' + encodeURIComponent(name);
+
+  // Remember what was redeemed so we can show it on return
+  lastRedeemedCoupon = couponBeingRedeemed;
+  lastRedeemedTime = Date.now();
+
+  // RESET UI IMMEDIATELY (before leaving) — when staff returns, scanner is pristine
+  resetForNextCustomer();
+
+  // Navigate to form
+  window.location.href = url;
+}
+
+// ── NEW: full reset for next customer ───────────────────────────────
+function resetForNextCustomer() {
   currentCoupon = null;
   g('couponPreview').className = 'coupon-preview';
   g('redeemBtn').disabled = true;
   g('redeemBtn').textContent = '✅ Open Redemption Form';
   g('smsg').className = 'msg';
-  rmsg('Form opened — submit it, then come back to scan next coupon.', 'ok');
-  window.location.href = url;
+  g('rmsg').className = 'msg';
+  g('manInput').value = '';
+  // NOTE: staffName is intentionally NOT cleared — persisted for the shift
 }
+
+// ── NEW: show "last redemption" indicator when returning from form ──
+function showLastRedemptionInfo() {
+  if (!lastRedeemedCoupon) return;
+  var el = g('lastRedemption');
+  el.innerHTML = '✅ <b>Last redeemed:</b> ' + lastRedeemedCoupon + ' &nbsp;<span style="color:#aaa">— ready for next customer</span>';
+  el.className = 'last-redemption show';
+  // Auto-hide after 8 seconds
+  setTimeout(function() {
+    el.className = 'last-redemption';
+  }, 8000);
+}
+
+// ── NEW: staff name management ──────────────────────────────────────
+function onStaffNameInput() {
+  var hasName = g('staffName').value.trim().length > 0;
+  g('clearNameBtn').style.display = hasName ? 'inline-block' : 'none';
+}
+
+function clearStaffName() {
+  g('staffName').value = '';
+  g('clearNameBtn').style.display = 'none';
+  g('staffName').focus();
+}
+// ────────────────────────────────────────────────────────────────────
 
 function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
 function rmsg(t, c)  { var e = g('rmsg');  e.textContent = t; e.className = 'msg ' + c; }
@@ -248,51 +296,33 @@ function applyAntiGlareSettings(track) {
   if (!track || !track.applyConstraints) return;
   var caps = track.getCapabilities ? track.getCapabilities() : {};
   trackCapabilities = caps;
-
   var advanced = [];
-  if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) {
-    advanced.push({ focusMode: 'continuous' });
-  }
-  if (caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf('continuous') !== -1) {
-    advanced.push({ whiteBalanceMode: 'continuous' });
-  }
+  if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) advanced.push({ focusMode: 'continuous' });
+  if (caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf('continuous') !== -1) advanced.push({ whiteBalanceMode: 'continuous' });
   if (caps.exposureCompensation) {
     var ec = caps.exposureCompensation;
-    var targetEC = Math.max(ec.min || -2, -1);
-    advanced.push({ exposureCompensation: targetEC });
-    console.log('[Scanner] Applied exposureCompensation: ' + targetEC);
+    advanced.push({ exposureCompensation: Math.max(ec.min || -2, -1) });
   }
-  if (caps.exposureMode && caps.exposureMode.indexOf('continuous') !== -1) {
-    advanced.push({ exposureMode: 'continuous' });
-  }
-
+  if (caps.exposureMode && caps.exposureMode.indexOf('continuous') !== -1) advanced.push({ exposureMode: 'continuous' });
   if (advanced.length > 0) {
-    track.applyConstraints({ advanced: advanced }).catch(function(e) {
-      console.log('[Scanner] Anti-glare constraints failed: ' + e.message);
-    });
+    track.applyConstraints({ advanced: advanced }).catch(function(){});
   }
 }
 
 function escalateAntiGlare() {
   if (!videoTrack || !trackCapabilities) return;
-
   if (exposureMode === 'auto') {
     exposureMode = 'reduced';
     if (trackCapabilities.exposureCompensation) {
       var ec = trackCapabilities.exposureCompensation;
-      var targetEC = Math.max(ec.min || -2, -2);
-      videoTrack.applyConstraints({ advanced: [{ exposureCompensation: targetEC }] })
-        .then(function(){ console.log('[Scanner] Reduced exposure: ' + targetEC); })
-        .catch(function(){});
+      videoTrack.applyConstraints({ advanced: [{ exposureCompensation: Math.max(ec.min || -2, -2) }] }).catch(function(){});
     }
     showGlareTip('💡 Tilt phone slightly to reduce glare');
   } else if (exposureMode === 'reduced') {
     exposureMode = 'minimal';
     if (trackCapabilities.exposureCompensation) {
       var ec2 = trackCapabilities.exposureCompensation;
-      videoTrack.applyConstraints({ advanced: [{ exposureCompensation: ec2.min || -3 }] })
-        .then(function(){ console.log('[Scanner] Minimal exposure'); })
-        .catch(function(){});
+      videoTrack.applyConstraints({ advanced: [{ exposureCompensation: ec2.min || -3 }] }).catch(function(){});
     }
     showGlareTip('💡 Tilt customer phone 15° away from light');
   }
@@ -301,18 +331,13 @@ function escalateAntiGlare() {
 function showGlareTip(text) { var el = g('glareTip'); if (el) el.textContent = text; }
 function clearGlareTip()    { var el = g('glareTip'); if (el) el.textContent = ''; }
 
-// ── NEW: Show a brief "wrong QR" warning, then keep scanning ──────────
 function flashRejectFeedback() {
   var box = g('scanbox');
   var banner = g('rejectBanner');
   if (box) box.classList.add('reject');
   if (banner) banner.textContent = '⚠️ Not a coupon QR — try again';
-  setTimeout(function() {
-    if (box) box.classList.remove('reject');
-  }, 700);
-  setTimeout(function() {
-    if (banner) banner.textContent = '';
-  }, 2500);
+  setTimeout(function() { if (box) box.classList.remove('reject'); }, 700);
+  setTimeout(function() { if (banner) banner.textContent = ''; }, 2500);
 }
 
 function startScan() {
@@ -326,18 +351,12 @@ function startScan() {
 
   setupBarcodeDetector(function() {
     navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'environment',
-        width:  { ideal: 1920 },
-        height: { ideal: 1080 },
-        frameRate: { ideal: 30 }
-      }
+      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } }
     })
       .then(function(s) {
         stream = s;
         videoTrack = s.getVideoTracks()[0];
         applyAntiGlareSettings(videoTrack);
-
         if (videoTrack) {
           var caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
           if (caps.zoom) {
@@ -359,11 +378,9 @@ function startScan() {
         g('engineBadge').textContent = useNativeDetector ? '⚡ Fast mode' : 'Standard mode';
         clearGlareTip();
         g('rejectBanner').textContent = '';
-
         scanStartTime = Date.now();
         exposureMode = 'auto';
         lastRejectTime = 0;
-
         var interval = useNativeDetector ? 100 : 200;
         raf = setInterval(doScan, interval);
         smsg('Camera open! Hold QR code steady.', 'ok');
@@ -387,9 +404,7 @@ function doScan() {
 
   if (useNativeDetector && barcodeDetector) {
     barcodeDetector.detect(v).then(function(codes) {
-      if (codes && codes.length > 0) {
-        handleScanResult(codes[0].rawValue);
-      }
+      if (codes && codes.length > 0) handleScanResult(codes[0].rawValue);
     }).catch(function(e) {
       console.log('[Scanner] Native detect failed, switching to jsQR: ' + e.message);
       useNativeDetector = false;
@@ -423,18 +438,14 @@ function doScan() {
     }
     result = jsQR(imgd.data, cvs.width, cvs.height, { inversionAttempts:'attemptBoth' });
   }
-  if (result) {
-    handleScanResult(result.data);
-  }
+  if (result) handleScanResult(result.data);
 }
 
-// ── UPDATED: validate before accepting ───────────────────────────────
 function handleScanResult(rawData) {
   var now = Date.now();
   var validId = extractCouponId(rawData);
 
   if (!validId) {
-    // Wrong QR — show feedback but keep scanning. Throttle so we don't spam.
     if (now - lastRejectTime > 1500) {
       lastRejectTime = now;
       console.log('[Scanner] Rejected non-coupon QR: ' + String(rawData).substring(0, 80));
@@ -443,7 +454,6 @@ function handleScanResult(rawData) {
     return;
   }
 
-  // Valid coupon — accept (with debounce on duplicate scans)
   if (validId !== lastCode || now - lastTime > 3000) {
     lastCode = validId;
     lastTime = now;
@@ -494,14 +504,22 @@ function tapFocus(e) {
   videoTrack.applyConstraints({ advanced:[{ focusMode:'single-shot', pointOfInterest:{x:x,y:y} }] }).catch(function(){});
 }
 
+// ── UPDATED: pageshow handler — show last redemption when returning ──
 window.addEventListener('pageshow', function(e) {
   if (e.persisted) {
-    currentCoupon = null;
-    g('couponPreview').className = 'coupon-preview';
-    g('redeemBtn').disabled = true;
-    g('redeemBtn').textContent = '✅ Open Redemption Form';
-    g('smsg').className = 'msg';
+    // Coming back via back button — UI was already reset before leaving
+    // Just make sure everything is clean and show the last redemption indicator
+    resetForNextCustomer();
+    if (lastRedeemedCoupon && (Date.now() - lastRedeemedTime) < 60000) {
+      // Only show if redemption was within last minute (likely just came back)
+      showLastRedemptionInfo();
+    }
   }
+});
+
+// On initial load, set up the clear button visibility
+window.addEventListener('load', function() {
+  onStaffNameInput();
 });
 </script>
 </body>
