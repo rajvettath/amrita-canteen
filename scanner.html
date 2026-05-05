@@ -47,7 +47,8 @@ input[type=text]:focus { border-color:#2e86c1; }
 .scanline { position:absolute; left:8px; right:8px; height:3px; background:linear-gradient(90deg,transparent,#2ecc71,transparent); animation:sl 2s ease-in-out infinite; }
 #camvid { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:16px; cursor:crosshair; }
 .scanlabel { color:#fff; font-size:15px; font-weight:bold; text-align:center; margin-bottom:4px; }
-.scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:12px; min-height:20px; }
+.scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:4px; min-height:20px; }
+.engine-badge { color:rgba(255,255,255,0.5); font-size:11px; text-align:center; margin-bottom:10px; min-height:14px; }
 .scan-controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:14px; width:100%; max-width:300px; }
 .torchbtn { padding:12px 18px; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border:2px solid rgba(255,255,255,0.3); border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
 .torchbtn.on { background:#f1c40f; color:#1b2631; border-color:#f1c40f; }
@@ -104,6 +105,7 @@ input[type=text]:focus { border-color:#2e86c1; }
   <p class="scanlabel">Point QR code at the green box</p>
   <p class="tap-hint">Tap box to focus</p>
   <p class="scancount" id="scancount">Ready to scan</p>
+  <p class="engine-badge" id="engineBadge"></p>
   <div class="scan-controls">
     <button class="torchbtn" id="torchbtn" onclick="toggleTorch()">🔦</button>
     <div class="zoom-wrap">
@@ -132,6 +134,11 @@ var cvs = null;
 var ctx = null;
 var torchOn = false;
 var videoTrack = null;
+
+// ── NEW: BarcodeDetector support ──────────────────────────────────────
+var barcodeDetector = null;       // instance if supported
+var useNativeDetector = false;    // which engine is active for this scan
+// ───────────────────────────────────────────────────────────────────────
 
 function g(id) { return document.getElementById(id); }
 
@@ -172,50 +179,105 @@ function doRedeem() {
 function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
 function rmsg(t, c)  { var e = g('rmsg');  e.textContent = t; e.className = 'msg ' + c; }
 
+// ── NEW: Try to set up native BarcodeDetector ─────────────────────────
+function setupBarcodeDetector(callback) {
+  if (typeof BarcodeDetector === 'undefined') {
+    console.log('[Scanner] BarcodeDetector not supported, will use jsQR');
+    useNativeDetector = false;
+    callback();
+    return;
+  }
+  BarcodeDetector.getSupportedFormats().then(function(formats) {
+    if (formats.indexOf('qr_code') !== -1) {
+      barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+      useNativeDetector = true;
+      console.log('[Scanner] Using native BarcodeDetector (fast)');
+    } else {
+      console.log('[Scanner] BarcodeDetector exists but no qr_code support, using jsQR');
+      useNativeDetector = false;
+    }
+    callback();
+  }).catch(function(e) {
+    console.log('[Scanner] BarcodeDetector setup failed: ' + e.message + ', using jsQR');
+    useNativeDetector = false;
+    callback();
+  });
+}
+// ───────────────────────────────────────────────────────────────────────
+
 function startScan() {
   var name = g('staffName').value.trim();
   if (!name) { smsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
-  if (typeof jsQR === 'undefined') { smsg('QR library not loaded. Check internet and refresh.', 'err'); return; }
+  if (typeof jsQR === 'undefined' && typeof BarcodeDetector === 'undefined') {
+    smsg('No QR scanning library available. Check internet and refresh.', 'err'); return;
+  }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { smsg('Camera not available on this browser.', 'err'); return; }
   smsg('Requesting camera...', 'ok');
-  navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } })
-    .then(function(s) {
-      stream = s;
-      videoTrack = s.getVideoTracks()[0];
-      if (videoTrack && videoTrack.applyConstraints)
-        videoTrack.applyConstraints({ advanced:[{ focusMode:'continuous' }] }).catch(function(){});
-      if (videoTrack) {
-        var caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
-        if (caps.zoom) {
-          var sl = g('zoomSlider');
-          sl.min = caps.zoom.min || 1;
-          sl.max = Math.min(caps.zoom.max || 4, 4);
-          sl.value = caps.zoom.min || 1;
-        } else { g('zoomSlider').style.display = 'none'; }
-      }
-      g('camvid').srcObject = stream;
-      g('camvid').play();
-      torchOn = false;
-      g('torchbtn').className = 'torchbtn';
-      g('overlay').className = 'overlay on';
-      scanning = true;
-      cvs = document.createElement('canvas');
-      ctx = cvs.getContext('2d');
-      g('scancount').textContent = 'Ready to scan';
-      raf = setInterval(doScan, 200);
-      smsg('Camera open! Hold QR code steady.', 'ok');
-    })
-    .catch(function(e) {
-      if (e.name === 'NotAllowedError') smsg('Camera blocked. Allow camera access and refresh.', 'err');
-      else if (e.name === 'NotFoundError') smsg('No camera found.', 'err');
-      else smsg('Camera error: ' + e.name, 'err');
-    });
+
+  // Set up the detector first, then open camera
+  setupBarcodeDetector(function() {
+    navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } })
+      .then(function(s) {
+        stream = s;
+        videoTrack = s.getVideoTracks()[0];
+        if (videoTrack && videoTrack.applyConstraints)
+          videoTrack.applyConstraints({ advanced:[{ focusMode:'continuous' }] }).catch(function(){});
+        if (videoTrack) {
+          var caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
+          if (caps.zoom) {
+            var sl = g('zoomSlider');
+            sl.min = caps.zoom.min || 1;
+            sl.max = Math.min(caps.zoom.max || 4, 4);
+            sl.value = caps.zoom.min || 1;
+          } else { g('zoomSlider').style.display = 'none'; }
+        }
+        g('camvid').srcObject = stream;
+        g('camvid').play();
+        torchOn = false;
+        g('torchbtn').className = 'torchbtn';
+        g('overlay').className = 'overlay on';
+        scanning = true;
+        cvs = document.createElement('canvas');
+        ctx = cvs.getContext('2d');
+        g('scancount').textContent = 'Ready to scan';
+        g('engineBadge').textContent = useNativeDetector ? '⚡ Fast mode' : 'Standard mode';
+
+        // Native detector can run faster (100ms); jsQR stays at 200ms
+        var interval = useNativeDetector ? 100 : 200;
+        raf = setInterval(doScan, interval);
+        smsg('Camera open! Hold QR code steady.', 'ok');
+      })
+      .catch(function(e) {
+        if (e.name === 'NotAllowedError') smsg('Camera blocked. Allow camera access and refresh.', 'err');
+        else if (e.name === 'NotFoundError') smsg('No camera found.', 'err');
+        else smsg('Camera error: ' + e.name, 'err');
+      });
+  });
 }
 
+// ── UPDATED: doScan now uses native detector when available ──────────
 function doScan() {
   if (!scanning) return;
   var v = g('camvid');
   if (v.readyState !== v.HAVE_ENOUGH_DATA || v.videoWidth === 0) return;
+
+  if (useNativeDetector && barcodeDetector) {
+    // FAST PATH: native BarcodeDetector — pass video element directly
+    barcodeDetector.detect(v).then(function(codes) {
+      if (codes && codes.length > 0) {
+        handleScanResult(codes[0].rawValue);
+      }
+    }).catch(function(e) {
+      // If native fails mid-scan, fall back to jsQR for the rest of this session
+      console.log('[Scanner] Native detect failed, switching to jsQR: ' + e.message);
+      useNativeDetector = false;
+      g('engineBadge').textContent = 'Standard mode';
+    });
+    return;
+  }
+
+  // FALLBACK PATH: jsQR (original logic preserved exactly)
+  if (typeof jsQR === 'undefined') return;
   if (cvs.width !== v.videoWidth) { cvs.width = v.videoWidth; cvs.height = v.videoHeight; }
   ctx.drawImage(v, 0, 0);
   var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
@@ -234,19 +296,25 @@ function doScan() {
     result = jsQR(imgd.data, cvs.width, cvs.height, { inversionAttempts:'attemptBoth' });
   }
   if (result) {
-    var now = Date.now();
-    if (result.data !== lastCode || now - lastTime > 3000) {
-      lastCode = result.data; lastTime = now;
-      var id = result.data;
-      try { var u=new URL(result.data); id=u.searchParams.get('id')||u.searchParams.get('coupon')||result.data; } catch(e){}
-      g('scanbox').style.borderColor = '#f1c40f';
-      setTimeout(function(){ g('scanbox').style.borderColor='#2ecc71'; }, 600);
-      g('scancount').textContent = '✅ Scanned: ' + id;
-      stopScan();
-      setCoupon(id);
-    }
+    handleScanResult(result.data);
   }
 }
+
+// ── NEW: shared result handler used by both engines ──────────────────
+function handleScanResult(rawData) {
+  var now = Date.now();
+  if (rawData !== lastCode || now - lastTime > 3000) {
+    lastCode = rawData; lastTime = now;
+    var id = rawData;
+    try { var u=new URL(rawData); id=u.searchParams.get('id')||u.searchParams.get('coupon')||rawData; } catch(e){}
+    g('scanbox').style.borderColor = '#f1c40f';
+    setTimeout(function(){ g('scanbox').style.borderColor='#2ecc71'; }, 600);
+    g('scancount').textContent = '✅ Scanned: ' + id;
+    stopScan();
+    setCoupon(id);
+  }
+}
+// ───────────────────────────────────────────────────────────────────────
 
 function stopScan() {
   scanning = false;
@@ -256,6 +324,7 @@ function stopScan() {
   g('torchbtn').className = 'torchbtn';
   g('zoomSlider').value = 1;
   g('overlay').className = 'overlay';
+  g('engineBadge').textContent = '';
 }
 
 function toggleTorch() {
