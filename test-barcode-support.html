@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BarcodeDetector Support Test</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #f5f5f7;
+    color: #1d1d1f;
+  }
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  h1 {
+    margin: 0 0 8px 0;
+    font-size: 22px;
+  }
+  h2 {
+    font-size: 16px;
+    margin: 16px 0 8px 0;
+    color: #555;
+  }
+  .result {
+    font-size: 18px;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 8px 0;
+  }
+  .yes { background: #d4f4dd; color: #0a6b29; }
+  .no  { background: #ffe0e0; color: #a31515; }
+  .info{ background: #e3f2fd; color: #0d47a1; }
+  .label { color: #666; font-size: 14px; }
+  .value { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 14px; word-break: break-all; }
+  pre { background: #f0f0f3; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🔍 BarcodeDetector Test</h1>
+  <p style="margin:0;color:#666;">Amrita Canteen scanner speed check</p>
+</div>
+
+<div class="card">
+  <h2>1. Is BarcodeDetector supported?</h2>
+  <div id="support" class="result info">Checking…</div>
+</div>
+
+<div class="card">
+  <h2>2. Which barcode formats?</h2>
+  <div id="formats" class="result info">Checking…</div>
+</div>
+
+<div class="card">
+  <h2>3. Browser info</h2>
+  <div class="label">User Agent:</div>
+  <div class="value" id="ua"></div>
+  <div class="label" style="margin-top:10px;">Secure context (HTTPS)?</div>
+  <div class="value" id="secure"></div>
+</div>
+
+<div class="card">
+  <h2>📋 Send Raj this result</h2>
+  <p style="font-size:14px;color:#666;margin:0 0 8px 0;">Screenshot this whole page, or copy the summary below:</p>
+  <pre id="summary">Loading…</pre>
+</div>
+
+<script>
+(async function() {
+  const supportEl = document.getElementById('support');
+  const formatsEl = document.getElementById('formats');
+  const uaEl = document.getElementById('ua');
+  const secureEl = document.getElementById('secure');
+  const summaryEl = document.getElementById('summary');
+
+  const ua = navigator.userAgent;
+  const secure = window.isSecureContext;
+  uaEl.textContent = ua;
+  secureEl.textContent = secure ? 'Yes ✅' : 'No ❌';
+
+  let supported = false;
+  let formats = [];
+  let detectorType = typeof BarcodeDetector;
+
+  if (detectorType !== 'undefined') {
+    supported = true;
+    supportEl.className = 'result yes';
+    supportEl.textContent = '✅ YES — BarcodeDetector is available!';
+
+    try {
+      formats = await BarcodeDetector.getSupportedFormats();
+      if (formats.includes('qr_code')) {
+        formatsEl.className = 'result yes';
+        formatsEl.textContent = '✅ QR codes supported! Formats: ' + formats.join(', ');
+      } else {
+        formatsEl.className = 'result no';
+        formatsEl.textContent = '⚠️ Available but QR not in list: ' + formats.join(', ');
+      }
+    } catch (e) {
+      formatsEl.className = 'result no';
+      formatsEl.textContent = '⚠️ Error getting formats: ' + e.message;
+    }
+  } else {
+    supportEl.className = 'result no';
+    supportEl.textContent = '❌ NO — BarcodeDetector not available. We will use optimized ZXing instead.';
+    formatsEl.className = 'result info';
+    formatsEl.textContent = 'N/A (BarcodeDetector not supported)';
+  }
+
+  summaryEl.textContent =
+    'BarcodeDetector: ' + (supported ? 'SUPPORTED ✅' : 'NOT SUPPORTED ❌') + '\n' +
+    'typeof BarcodeDetector: ' + detectorType + '\n' +
+    'QR supported: ' + (formats.includes('qr_code') ? 'YES' : 'NO') + '\n' +
+    'All formats: ' + (formats.length ? formats.join(', ') : 'none') + '\n' +
+    'Secure context: ' + secure + '\n' +
+    'User Agent: ' + ua;
+})();
+</script>
+
+</body>
+</html>
