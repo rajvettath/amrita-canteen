@@ -48,7 +48,8 @@ input[type=text]:focus { border-color:#2e86c1; }
 #camvid { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:16px; cursor:crosshair; }
 .scanlabel { color:#fff; font-size:15px; font-weight:bold; text-align:center; margin-bottom:4px; }
 .scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:4px; min-height:20px; }
-.engine-badge { color:rgba(255,255,255,0.5); font-size:11px; text-align:center; margin-bottom:10px; min-height:14px; }
+.engine-badge { color:rgba(255,255,255,0.5); font-size:11px; text-align:center; margin-bottom:4px; min-height:14px; }
+.glare-tip { color:#f39c12; font-size:12px; text-align:center; margin-bottom:10px; min-height:16px; font-weight:bold; }
 .scan-controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:14px; width:100%; max-width:300px; }
 .torchbtn { padding:12px 18px; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border:2px solid rgba(255,255,255,0.3); border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
 .torchbtn.on { background:#f1c40f; color:#1b2631; border-color:#f1c40f; }
@@ -106,6 +107,7 @@ input[type=text]:focus { border-color:#2e86c1; }
   <p class="tap-hint">Tap box to focus</p>
   <p class="scancount" id="scancount">Ready to scan</p>
   <p class="engine-badge" id="engineBadge"></p>
+  <p class="glare-tip" id="glareTip"></p>
   <div class="scan-controls">
     <button class="torchbtn" id="torchbtn" onclick="toggleTorch()">🔦</button>
     <div class="zoom-wrap">
@@ -118,7 +120,7 @@ input[type=text]:focus { border-color:#2e86c1; }
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-// ── UPDATED CONFIG ──────────────────────────────────────────────────────
+// ── CONFIG ─────────────────────────────────────────────────────────────
 var FORM_URL     = 'https://forms.office.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUMkIxOFpaM1RFMERKWTlLWDJMMk9GRE1BTi4u';
 var FIELD_COUPON = 'r6ca98d84fc50447f9d89b364bc718a62';
 var FIELD_STAFF  = 'rf3c0eb06ae6349a19f5ad578fb21b712';
@@ -135,10 +137,14 @@ var ctx = null;
 var torchOn = false;
 var videoTrack = null;
 
-// ── NEW: BarcodeDetector support ──────────────────────────────────────
-var barcodeDetector = null;       // instance if supported
-var useNativeDetector = false;    // which engine is active for this scan
-// ───────────────────────────────────────────────────────────────────────
+// BarcodeDetector support
+var barcodeDetector = null;
+var useNativeDetector = false;
+
+// Anti-glare state
+var scanStartTime = 0;
+var exposureMode = 'auto';        // 'auto' | 'reduced' | 'minimal'
+var trackCapabilities = null;
 
 function g(id) { return document.getElementById(id); }
 
@@ -179,7 +185,6 @@ function doRedeem() {
 function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
 function rmsg(t, c)  { var e = g('rmsg');  e.textContent = t; e.className = 'msg ' + c; }
 
-// ── NEW: Try to set up native BarcodeDetector ─────────────────────────
 function setupBarcodeDetector(callback) {
   if (typeof BarcodeDetector === 'undefined') {
     console.log('[Scanner] BarcodeDetector not supported, will use jsQR');
@@ -203,7 +208,72 @@ function setupBarcodeDetector(callback) {
     callback();
   });
 }
-// ───────────────────────────────────────────────────────────────────────
+
+// ── Apply anti-glare camera settings on scan start ────────────────────
+function applyAntiGlareSettings(track) {
+  if (!track || !track.applyConstraints) return;
+  var caps = track.getCapabilities ? track.getCapabilities() : {};
+  trackCapabilities = caps;
+
+  var advanced = [];
+
+  if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) {
+    advanced.push({ focusMode: 'continuous' });
+  }
+  if (caps.whiteBalanceMode && caps.whiteBalanceMode.indexOf('continuous') !== -1) {
+    advanced.push({ whiteBalanceMode: 'continuous' });
+  }
+  if (caps.exposureCompensation) {
+    var ec = caps.exposureCompensation;
+    var targetEC = Math.max(ec.min || -2, -1);
+    advanced.push({ exposureCompensation: targetEC });
+    console.log('[Scanner] Applied exposureCompensation: ' + targetEC);
+  }
+  if (caps.exposureMode && caps.exposureMode.indexOf('continuous') !== -1) {
+    advanced.push({ exposureMode: 'continuous' });
+  }
+
+  if (advanced.length > 0) {
+    track.applyConstraints({ advanced: advanced }).catch(function(e) {
+      console.log('[Scanner] Anti-glare constraints failed: ' + e.message);
+    });
+  }
+}
+
+// ── Escalate exposure compensation if scanning takes too long ─────────
+function escalateAntiGlare() {
+  if (!videoTrack || !trackCapabilities) return;
+
+  if (exposureMode === 'auto') {
+    exposureMode = 'reduced';
+    if (trackCapabilities.exposureCompensation) {
+      var ec = trackCapabilities.exposureCompensation;
+      var targetEC = Math.max(ec.min || -2, -2);
+      videoTrack.applyConstraints({ advanced: [{ exposureCompensation: targetEC }] })
+        .then(function(){ console.log('[Scanner] Reduced exposure: ' + targetEC); })
+        .catch(function(){});
+    }
+    showGlareTip('💡 Tilt phone slightly to reduce glare');
+  } else if (exposureMode === 'reduced') {
+    exposureMode = 'minimal';
+    if (trackCapabilities.exposureCompensation) {
+      var ec2 = trackCapabilities.exposureCompensation;
+      videoTrack.applyConstraints({ advanced: [{ exposureCompensation: ec2.min || -3 }] })
+        .then(function(){ console.log('[Scanner] Minimal exposure'); })
+        .catch(function(){});
+    }
+    showGlareTip('💡 Tilt customer phone 15° away from light');
+  }
+}
+
+function showGlareTip(text) {
+  var el = g('glareTip');
+  if (el) el.textContent = text;
+}
+function clearGlareTip() {
+  var el = g('glareTip');
+  if (el) el.textContent = '';
+}
 
 function startScan() {
   var name = g('staffName').value.trim();
@@ -214,14 +284,22 @@ function startScan() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { smsg('Camera not available on this browser.', 'err'); return; }
   smsg('Requesting camera...', 'ok');
 
-  // Set up the detector first, then open camera
   setupBarcodeDetector(function() {
-    navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} } })
+    // Higher resolution helps QR detection through glare
+    navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'environment',
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 },
+        frameRate: { ideal: 30 }
+      }
+    })
       .then(function(s) {
         stream = s;
         videoTrack = s.getVideoTracks()[0];
-        if (videoTrack && videoTrack.applyConstraints)
-          videoTrack.applyConstraints({ advanced:[{ focusMode:'continuous' }] }).catch(function(){});
+
+        applyAntiGlareSettings(videoTrack);
+
         if (videoTrack) {
           var caps = videoTrack.getCapabilities ? videoTrack.getCapabilities() : {};
           if (caps.zoom) {
@@ -241,8 +319,11 @@ function startScan() {
         ctx = cvs.getContext('2d');
         g('scancount').textContent = 'Ready to scan';
         g('engineBadge').textContent = useNativeDetector ? '⚡ Fast mode' : 'Standard mode';
+        clearGlareTip();
 
-        // Native detector can run faster (100ms); jsQR stays at 200ms
+        scanStartTime = Date.now();
+        exposureMode = 'auto';
+
         var interval = useNativeDetector ? 100 : 200;
         raf = setInterval(doScan, interval);
         smsg('Camera open! Hold QR code steady.', 'ok');
@@ -255,20 +336,22 @@ function startScan() {
   });
 }
 
-// ── UPDATED: doScan now uses native detector when available ──────────
 function doScan() {
   if (!scanning) return;
   var v = g('camvid');
   if (v.readyState !== v.HAVE_ENOUGH_DATA || v.videoWidth === 0) return;
 
+  // Auto-escalate anti-glare if scan is taking too long
+  var elapsed = Date.now() - scanStartTime;
+  if (elapsed > 3000 && exposureMode === 'auto') escalateAntiGlare();
+  if (elapsed > 6000 && exposureMode === 'reduced') escalateAntiGlare();
+
   if (useNativeDetector && barcodeDetector) {
-    // FAST PATH: native BarcodeDetector — pass video element directly
     barcodeDetector.detect(v).then(function(codes) {
       if (codes && codes.length > 0) {
         handleScanResult(codes[0].rawValue);
       }
     }).catch(function(e) {
-      // If native fails mid-scan, fall back to jsQR for the rest of this session
       console.log('[Scanner] Native detect failed, switching to jsQR: ' + e.message);
       useNativeDetector = false;
       g('engineBadge').textContent = 'Standard mode';
@@ -276,17 +359,28 @@ function doScan() {
     return;
   }
 
-  // FALLBACK PATH: jsQR (original logic preserved exactly)
+  // FALLBACK: jsQR with anti-glare image processing
   if (typeof jsQR === 'undefined') return;
   if (cvs.width !== v.videoWidth) { cvs.width = v.videoWidth; cvs.height = v.videoHeight; }
   ctx.drawImage(v, 0, 0);
-  var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
-  var result = jsQR(d.data, d.width, d.height, { inversionAttempts:'attemptBoth' });
+
+  // First try center 60% — avoids edge glare from tube light above
+  var cx2=Math.floor(cvs.width*0.2), cy2=Math.floor(cvs.height*0.2);
+  var cw2=Math.floor(cvs.width*0.6),  ch2=Math.floor(cvs.height*0.6);
+  var result = jsQR(ctx.getImageData(cx2,cy2,cw2,ch2).data, cw2, ch2, { inversionAttempts:'attemptBoth' });
+
+  // Then full frame
+  if (!result) {
+    var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
+    result = jsQR(d.data, d.width, d.height, { inversionAttempts:'attemptBoth' });
+  }
+  // Then standard center crop
   if (!result) {
     var cx=Math.floor(cvs.width*0.15), cy=Math.floor(cvs.height*0.15);
     var cw=Math.floor(cvs.width*0.7),  ch=Math.floor(cvs.height*0.7);
     result = jsQR(ctx.getImageData(cx,cy,cw,ch).data, cw, ch, { inversionAttempts:'attemptBoth' });
   }
+  // Then high-contrast (helps washed-out glare areas)
   if (!result) {
     var imgd = ctx.getImageData(0,0,cvs.width,cvs.height), px = imgd.data;
     for (var i=0; i<px.length; i+=4) {
@@ -300,7 +394,6 @@ function doScan() {
   }
 }
 
-// ── NEW: shared result handler used by both engines ──────────────────
 function handleScanResult(rawData) {
   var now = Date.now();
   if (rawData !== lastCode || now - lastTime > 3000) {
@@ -314,17 +407,19 @@ function handleScanResult(rawData) {
     setCoupon(id);
   }
 }
-// ───────────────────────────────────────────────────────────────────────
 
 function stopScan() {
   scanning = false;
   if (raf) { clearInterval(raf); raf = null; }
   if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
   videoTrack = null; torchOn = false;
+  trackCapabilities = null;
+  exposureMode = 'auto';
   g('torchbtn').className = 'torchbtn';
   g('zoomSlider').value = 1;
   g('overlay').className = 'overlay';
   g('engineBadge').textContent = '';
+  clearGlareTip();
 }
 
 function toggleTorch() {
@@ -351,7 +446,6 @@ function tapFocus(e) {
   videoTrack.applyConstraints({ advanced:[{ focusMode:'single-shot', pointOfInterest:{x:x,y:y} }] }).catch(function(){});
 }
 
-// Reset when returning via back button after form submission
 window.addEventListener('pageshow', function(e) {
   if (e.persisted) {
     currentCoupon = null;
