@@ -40,16 +40,18 @@ input[type=text]:focus { border-color:#2e86c1; }
 .cp-type { font-size:13px; color:#7f8c8d; }
 .footer { text-align:center; color:#aab7b8; font-size:12px; margin-top:16px; }
 
-/* FULLSCREEN CAMERA OVERLAY — exact pattern from working app */
+/* FULLSCREEN CAMERA OVERLAY */
 .overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:999; flex-direction:column; align-items:center; justify-content:center; padding:20px; }
 .overlay.on { display:flex; }
 .scanbox { width:290px; height:290px; border:4px solid #2ecc71; border-radius:20px; position:relative; margin-bottom:18px; box-shadow:0 0 0 9999px rgba(0,0,0,0.78); transition:border-color 0.3s; }
+.scanbox.reject { border-color:#e74c3c !important; }
 .scanline { position:absolute; left:8px; right:8px; height:3px; background:linear-gradient(90deg,transparent,#2ecc71,transparent); animation:sl 2s ease-in-out infinite; }
 #camvid { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; border-radius:16px; cursor:crosshair; }
 .scanlabel { color:#fff; font-size:15px; font-weight:bold; text-align:center; margin-bottom:4px; }
 .scancount { color:#f1c40f; font-size:14px; font-weight:bold; text-align:center; margin-bottom:4px; min-height:20px; }
 .engine-badge { color:rgba(255,255,255,0.5); font-size:11px; text-align:center; margin-bottom:4px; min-height:14px; }
 .glare-tip { color:#f39c12; font-size:12px; text-align:center; margin-bottom:10px; min-height:16px; font-weight:bold; }
+.reject-banner { color:#e74c3c; font-size:13px; text-align:center; margin-bottom:8px; font-weight:bold; min-height:18px; }
 .scan-controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-bottom:14px; width:100%; max-width:300px; }
 .torchbtn { padding:12px 18px; background:rgba(255,255,255,0.15); color:#fff; font-size:22px; border:2px solid rgba(255,255,255,0.3); border-radius:12px; cursor:pointer; font-family:Arial,Helvetica,sans-serif; }
 .torchbtn.on { background:#f1c40f; color:#1b2631; border-color:#f1c40f; }
@@ -107,6 +109,7 @@ input[type=text]:focus { border-color:#2e86c1; }
   <p class="tap-hint">Tap box to focus</p>
   <p class="scancount" id="scancount">Ready to scan</p>
   <p class="engine-badge" id="engineBadge"></p>
+  <p class="reject-banner" id="rejectBanner"></p>
   <p class="glare-tip" id="glareTip"></p>
   <div class="scan-controls">
     <button class="torchbtn" id="torchbtn" onclick="toggleTorch()">🔦</button>
@@ -124,6 +127,11 @@ input[type=text]:focus { border-color:#2e86c1; }
 var FORM_URL     = 'https://forms.office.com/Pages/ResponsePage.aspx?id=xt9vkZB130aIeIMeG2vJFsYMQIxTSCJGrtIKaw3yE3hUMkIxOFpaM1RFMERKWTlLWDJMMk9GRE1BTi4u';
 var FIELD_COUPON = 'r6ca98d84fc50447f9d89b364bc718a62';
 var FIELD_STAFF  = 'rf3c0eb06ae6349a19f5ad578fb21b712';
+
+// Coupon ID format: NAME(-NAME...)-10DIGITPHONE
+// Examples that match:    DEVADAS-S-9446875192, RAJ-VH-8943699999, MJ-SAJIV-7012751251, PRIYA-SHARMA-9876543210
+// Examples that REJECT:   UPI://PAY?..., https://anything, plain numbers, anything with spaces
+var COUPON_REGEX = /^[A-Z][A-Z0-9\-]*-\d{10}$/;
 // ───────────────────────────────────────────────────────────────────────
 
 var currentCoupon = null;
@@ -143,14 +151,41 @@ var useNativeDetector = false;
 
 // Anti-glare state
 var scanStartTime = 0;
-var exposureMode = 'auto';        // 'auto' | 'reduced' | 'minimal'
+var exposureMode = 'auto';
 var trackCapabilities = null;
 
+// Reject feedback throttling
+var lastRejectTime = 0;
+
 function g(id) { return document.getElementById(id); }
+
+// ── NEW: extract & validate coupon ID from raw QR data ────────────────
+function extractCouponId(rawData) {
+  if (!rawData) return null;
+  var candidate = String(rawData).trim();
+
+  // If it's a URL, try to pull ?id=... or ?coupon=... param
+  try {
+    var u = new URL(candidate);
+    var fromUrl = u.searchParams.get('id') || u.searchParams.get('coupon');
+    if (fromUrl) candidate = fromUrl;
+  } catch(e) { /* not a URL, use as-is */ }
+
+  candidate = candidate.trim().toUpperCase();
+
+  // Must match the strict coupon format
+  if (COUPON_REGEX.test(candidate)) return candidate;
+  return null;
+}
 
 function setCoupon(id) {
   id = id.trim().toUpperCase();
   if (!id) return;
+  // Validate manually-entered IDs too
+  if (!COUPON_REGEX.test(id)) {
+    smsg('Invalid format. Expected: NAME-NAME-PHONE (e.g. PRIYA-SHARMA-9876543210)', 'err');
+    return;
+  }
   currentCoupon = id;
   g('cpId').textContent = id;
   g('couponPreview').className = 'coupon-preview show';
@@ -163,7 +198,7 @@ function doManual() {
   var v = g('manInput').value.trim();
   if (!v) { smsg('Enter a Coupon ID first', 'err'); return; }
   setCoupon(v);
-  g('manInput').value = '';
+  if (currentCoupon) g('manInput').value = '';
 }
 
 function doRedeem() {
@@ -198,25 +233,23 @@ function setupBarcodeDetector(callback) {
       useNativeDetector = true;
       console.log('[Scanner] Using native BarcodeDetector (fast)');
     } else {
-      console.log('[Scanner] BarcodeDetector exists but no qr_code support, using jsQR');
+      console.log('[Scanner] BarcodeDetector exists but no qr_code, using jsQR');
       useNativeDetector = false;
     }
     callback();
   }).catch(function(e) {
-    console.log('[Scanner] BarcodeDetector setup failed: ' + e.message + ', using jsQR');
+    console.log('[Scanner] BarcodeDetector setup failed: ' + e.message);
     useNativeDetector = false;
     callback();
   });
 }
 
-// ── Apply anti-glare camera settings on scan start ────────────────────
 function applyAntiGlareSettings(track) {
   if (!track || !track.applyConstraints) return;
   var caps = track.getCapabilities ? track.getCapabilities() : {};
   trackCapabilities = caps;
 
   var advanced = [];
-
   if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) {
     advanced.push({ focusMode: 'continuous' });
   }
@@ -240,7 +273,6 @@ function applyAntiGlareSettings(track) {
   }
 }
 
-// ── Escalate exposure compensation if scanning takes too long ─────────
 function escalateAntiGlare() {
   if (!videoTrack || !trackCapabilities) return;
 
@@ -266,13 +298,21 @@ function escalateAntiGlare() {
   }
 }
 
-function showGlareTip(text) {
-  var el = g('glareTip');
-  if (el) el.textContent = text;
-}
-function clearGlareTip() {
-  var el = g('glareTip');
-  if (el) el.textContent = '';
+function showGlareTip(text) { var el = g('glareTip'); if (el) el.textContent = text; }
+function clearGlareTip()    { var el = g('glareTip'); if (el) el.textContent = ''; }
+
+// ── NEW: Show a brief "wrong QR" warning, then keep scanning ──────────
+function flashRejectFeedback() {
+  var box = g('scanbox');
+  var banner = g('rejectBanner');
+  if (box) box.classList.add('reject');
+  if (banner) banner.textContent = '⚠️ Not a coupon QR — try again';
+  setTimeout(function() {
+    if (box) box.classList.remove('reject');
+  }, 700);
+  setTimeout(function() {
+    if (banner) banner.textContent = '';
+  }, 2500);
 }
 
 function startScan() {
@@ -285,7 +325,6 @@ function startScan() {
   smsg('Requesting camera...', 'ok');
 
   setupBarcodeDetector(function() {
-    // Higher resolution helps QR detection through glare
     navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'environment',
@@ -297,7 +336,6 @@ function startScan() {
       .then(function(s) {
         stream = s;
         videoTrack = s.getVideoTracks()[0];
-
         applyAntiGlareSettings(videoTrack);
 
         if (videoTrack) {
@@ -320,9 +358,11 @@ function startScan() {
         g('scancount').textContent = 'Ready to scan';
         g('engineBadge').textContent = useNativeDetector ? '⚡ Fast mode' : 'Standard mode';
         clearGlareTip();
+        g('rejectBanner').textContent = '';
 
         scanStartTime = Date.now();
         exposureMode = 'auto';
+        lastRejectTime = 0;
 
         var interval = useNativeDetector ? 100 : 200;
         raf = setInterval(doScan, interval);
@@ -341,7 +381,6 @@ function doScan() {
   var v = g('camvid');
   if (v.readyState !== v.HAVE_ENOUGH_DATA || v.videoWidth === 0) return;
 
-  // Auto-escalate anti-glare if scan is taking too long
   var elapsed = Date.now() - scanStartTime;
   if (elapsed > 3000 && exposureMode === 'auto') escalateAntiGlare();
   if (elapsed > 6000 && exposureMode === 'reduced') escalateAntiGlare();
@@ -359,28 +398,23 @@ function doScan() {
     return;
   }
 
-  // FALLBACK: jsQR with anti-glare image processing
   if (typeof jsQR === 'undefined') return;
   if (cvs.width !== v.videoWidth) { cvs.width = v.videoWidth; cvs.height = v.videoHeight; }
   ctx.drawImage(v, 0, 0);
 
-  // First try center 60% — avoids edge glare from tube light above
   var cx2=Math.floor(cvs.width*0.2), cy2=Math.floor(cvs.height*0.2);
   var cw2=Math.floor(cvs.width*0.6),  ch2=Math.floor(cvs.height*0.6);
   var result = jsQR(ctx.getImageData(cx2,cy2,cw2,ch2).data, cw2, ch2, { inversionAttempts:'attemptBoth' });
 
-  // Then full frame
   if (!result) {
     var d = ctx.getImageData(0, 0, cvs.width, cvs.height);
     result = jsQR(d.data, d.width, d.height, { inversionAttempts:'attemptBoth' });
   }
-  // Then standard center crop
   if (!result) {
     var cx=Math.floor(cvs.width*0.15), cy=Math.floor(cvs.height*0.15);
     var cw=Math.floor(cvs.width*0.7),  ch=Math.floor(cvs.height*0.7);
     result = jsQR(ctx.getImageData(cx,cy,cw,ch).data, cw, ch, { inversionAttempts:'attemptBoth' });
   }
-  // Then high-contrast (helps washed-out glare areas)
   if (!result) {
     var imgd = ctx.getImageData(0,0,cvs.width,cvs.height), px = imgd.data;
     for (var i=0; i<px.length; i+=4) {
@@ -394,17 +428,30 @@ function doScan() {
   }
 }
 
+// ── UPDATED: validate before accepting ───────────────────────────────
 function handleScanResult(rawData) {
   var now = Date.now();
-  if (rawData !== lastCode || now - lastTime > 3000) {
-    lastCode = rawData; lastTime = now;
-    var id = rawData;
-    try { var u=new URL(rawData); id=u.searchParams.get('id')||u.searchParams.get('coupon')||rawData; } catch(e){}
+  var validId = extractCouponId(rawData);
+
+  if (!validId) {
+    // Wrong QR — show feedback but keep scanning. Throttle so we don't spam.
+    if (now - lastRejectTime > 1500) {
+      lastRejectTime = now;
+      console.log('[Scanner] Rejected non-coupon QR: ' + String(rawData).substring(0, 80));
+      flashRejectFeedback();
+    }
+    return;
+  }
+
+  // Valid coupon — accept (with debounce on duplicate scans)
+  if (validId !== lastCode || now - lastTime > 3000) {
+    lastCode = validId;
+    lastTime = now;
     g('scanbox').style.borderColor = '#f1c40f';
     setTimeout(function(){ g('scanbox').style.borderColor='#2ecc71'; }, 600);
-    g('scancount').textContent = '✅ Scanned: ' + id;
+    g('scancount').textContent = '✅ Scanned: ' + validId;
     stopScan();
-    setCoupon(id);
+    setCoupon(validId);
   }
 }
 
@@ -419,6 +466,7 @@ function stopScan() {
   g('zoomSlider').value = 1;
   g('overlay').className = 'overlay';
   g('engineBadge').textContent = '';
+  g('rejectBanner').textContent = '';
   clearGlareTip();
 }
 
