@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SharePoint API Test</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin:0; padding:20px; background:#f5f5f7; color:#1d1d1f; }
+  .card { background:white; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+  h1 { margin:0 0 8px; font-size:22px; }
+  h2 { font-size:16px; margin:14px 0 8px; color:#555; }
+  .result { font-size:15px; font-weight:600; padding:12px; border-radius:8px; margin:8px 0; word-break:break-word; }
+  .yes { background:#d4f4dd; color:#0a6b29; }
+  .no  { background:#ffe0e0; color:#a31515; }
+  .info{ background:#e3f2fd; color:#0d47a1; }
+  .label { color:#666; font-size:13px; }
+  .value { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size:13px; word-break:break-all; }
+  pre { background:#f0f0f3; padding:10px; border-radius:6px; overflow-x:auto; font-size:11px; max-height:200px; }
+  button { padding:14px 24px; background:#1e8449; color:white; font-size:16px; border:none; border-radius:10px; font-weight:bold; cursor:pointer; width:100%; margin-top:8px; }
+  button:disabled { background:#aaa; }
+  input { width:100%; padding:10px; font-size:14px; border:2px solid #aed6f1; border-radius:8px; margin-top:6px; box-sizing:border-box; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>🔌 SharePoint API Test</h1>
+  <p style="margin:0;color:#666;">Tests if scanner.html can read coupon balances from SharePoint</p>
+</div>
+
+<div class="card">
+  <h2>Test 1: Basic SharePoint reach</h2>
+  <p class="label">First, does the browser see SharePoint at all?</p>
+  <button onclick="runTest1()">Run Test 1</button>
+  <div id="t1result" class="result info" style="margin-top:12px;">Click button to run</div>
+</div>
+
+<div class="card">
+  <h2>Test 2: Read coupon balance for a customer</h2>
+  <p class="label">Enter a real coupon ID from your SharePoint list (e.g. RAJ-VH-8943699999):</p>
+  <input id="couponId" type="text" placeholder="RAJ-VH-8943699999" autocomplete="off">
+  <button onclick="runTest2()">Run Test 2</button>
+  <div id="t2result" class="result info" style="margin-top:12px;">Enter coupon ID and click button</div>
+  <pre id="t2raw" style="display:none;"></pre>
+</div>
+
+<div class="card">
+  <h2>📋 Send Raj this result</h2>
+  <pre id="summary">Run both tests, then copy this:
+(empty)</pre>
+</div>
+
+<script>
+const SITE_URL = 'https://amritahealth.sharepoint.com/sites/RestaurantCouponSystem';
+const LIST_NAME = 'Restaurant Coupons';
+
+let test1Status = 'not run';
+let test2Status = 'not run';
+let test2Detail = '';
+
+function updateSummary() {
+  document.getElementById('summary').textContent =
+    'Test 1 (basic reach): ' + test1Status + '\n' +
+    'Test 2 (read balance): ' + test2Status + '\n' +
+    (test2Detail ? 'Detail: ' + test2Detail + '\n' : '') +
+    'User Agent: ' + navigator.userAgent;
+}
+
+async function runTest1() {
+  const el = document.getElementById('t1result');
+  el.className = 'result info';
+  el.textContent = 'Testing...';
+  try {
+    // Try to fetch SharePoint home page (cheapest test)
+    const res = await fetch(SITE_URL + '/_api/web/title', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json;odata=verbose' },
+      credentials: 'include',
+      mode: 'cors'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      el.className = 'result yes';
+      el.textContent = '✅ SUCCESS — Connected to SharePoint site: ' + (data.d?.Title || 'unknown');
+      test1Status = 'PASS ✅';
+    } else if (res.status === 401 || res.status === 403) {
+      el.className = 'result no';
+      el.textContent = '❌ Auth issue (HTTP ' + res.status + ') — staff might need to sign in to SharePoint first';
+      test1Status = 'AUTH FAIL (' + res.status + ')';
+    } else {
+      el.className = 'result no';
+      el.textContent = '❌ Request blocked (HTTP ' + res.status + ')';
+      test1Status = 'BLOCKED (' + res.status + ')';
+    }
+  } catch (err) {
+    el.className = 'result no';
+    el.textContent = '❌ CORS BLOCKED — ' + err.message;
+    test1Status = 'CORS BLOCKED: ' + err.message;
+  }
+  updateSummary();
+}
+
+async function runTest2() {
+  const couponId = document.getElementById('couponId').value.trim().toUpperCase();
+  const el = document.getElementById('t2result');
+  const rawEl = document.getElementById('t2raw');
+
+  if (!couponId) {
+    el.className = 'result no';
+    el.textContent = '❌ Enter a coupon ID first';
+    return;
+  }
+
+  el.className = 'result info';
+  el.textContent = 'Testing...';
+
+  try {
+    const url = SITE_URL +
+      "/_api/web/lists/getbytitle('" + encodeURIComponent(LIST_NAME) + "')" +
+      "/items?$filter=Title eq '" + couponId.replace(/'/g, "''") + "'" +
+      "&$select=Title,CustomerName,RemainingBalance,CouponStatus";
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json;odata=nometadata' },
+      credentials: 'include',
+      mode: 'cors'
+    });
+
+    if (!res.ok) {
+      el.className = 'result no';
+      el.textContent = '❌ Request failed: HTTP ' + res.status + ' ' + res.statusText;
+      test2Status = 'HTTP ' + res.status;
+      updateSummary();
+      return;
+    }
+
+    const data = await res.json();
+    rawEl.style.display = 'block';
+    rawEl.textContent = JSON.stringify(data, null, 2);
+
+    if (data.value && data.value.length > 0) {
+      const row = data.value[0];
+      el.className = 'result yes';
+      el.innerHTML = '✅ SUCCESS!<br>Customer: <b>' + row.CustomerName + '</b><br>Balance: <b>₹' + row.RemainingBalance + '</b><br>Status: ' + row.CouponStatus;
+      test2Status = 'PASS ✅ (balance=₹' + row.RemainingBalance + ')';
+      test2Detail = row.CustomerName;
+    } else {
+      el.className = 'result no';
+      el.textContent = '⚠️ Connected, but coupon not found: ' + couponId;
+      test2Status = 'NOT FOUND';
+    }
+  } catch (err) {
+    el.className = 'result no';
+    el.textContent = '❌ Error: ' + err.message;
+    test2Status = 'ERROR: ' + err.message;
+  }
+  updateSummary();
+}
+
+updateSummary();
+</script>
+
+</body>
+</html>
