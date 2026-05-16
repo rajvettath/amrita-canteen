@@ -136,11 +136,10 @@ var FORM_URL     = 'https://forms.office.com/Pages/ResponsePage.aspx?id=xt9vkZB1
 var FIELD_COUPON = 'r6ca98d84fc50447f9d89b364bc718a62';
 var FIELD_STAFF  = 'rf3c0eb06ae6349a19f5ad578fb21b712';
 
-// Coupon ID format
-var COUPON_REGEX = /^[A-Z][A-Z0-9\-]*-\d{10}$/;
-
-// In-memory storage keys (sessionStorage avoided per env restrictions; we use plain vars)
-// ───────────────────────────────────────────────────────────────────────
+// ── COUPON ID REGEX ─────────────────────────────────────────────────────
+// Supports OLD format:  RAJ-VH-8943699999
+// AND NEW format:       RAJ-VH-8943699999-260515-152507  (with date+time suffix)
+var COUPON_REGEX = /^[A-Z][A-Z0-9\-]*-\d{10}(-\d{6}-\d{6})?$/;
 
 var currentCoupon = null;
 var stream = null;
@@ -165,7 +164,7 @@ var trackCapabilities = null;
 // Reject feedback throttling
 var lastRejectTime = 0;
 
-// NEW: track last redemption for "back from form" UX
+// Track last redemption for "back from form" UX
 var lastRedeemedCoupon = null;
 var lastRedeemedTime = 0;
 
@@ -188,7 +187,7 @@ function setCoupon(id) {
   id = id.trim().toUpperCase();
   if (!id) return;
   if (!COUPON_REGEX.test(id)) {
-    smsg('Invalid format. Expected: NAME-NAME-PHONE (e.g. PRIYA-SHARMA-9876543210)', 'err');
+    smsg('Invalid format. Expected: NAME-PHONE or NAME-PHONE-DATE-TIME', 'err');
     return;
   }
   currentCoupon = id;
@@ -206,7 +205,6 @@ function doManual() {
   if (currentCoupon) g('manInput').value = '';
 }
 
-// ── UPDATED: doRedeem now resets UI BEFORE leaving ──────────────────
 function doRedeem() {
   var name = g('staffName').value.trim();
   if (!name) { rmsg('Enter your name in Step 1 first!', 'err'); g('staffName').focus(); return; }
@@ -217,18 +215,13 @@ function doRedeem() {
     '&' + FIELD_COUPON + '=' + encodeURIComponent(couponBeingRedeemed) +
     '&' + FIELD_STAFF  + '=' + encodeURIComponent(name);
 
-  // Remember what was redeemed so we can show it on return
   lastRedeemedCoupon = couponBeingRedeemed;
   lastRedeemedTime = Date.now();
 
-  // RESET UI IMMEDIATELY (before leaving) — when staff returns, scanner is pristine
   resetForNextCustomer();
-
-  // Navigate to form
   window.location.href = url;
 }
 
-// ── NEW: full reset for next customer ───────────────────────────────
 function resetForNextCustomer() {
   currentCoupon = null;
   g('couponPreview').className = 'coupon-preview';
@@ -237,22 +230,16 @@ function resetForNextCustomer() {
   g('smsg').className = 'msg';
   g('rmsg').className = 'msg';
   g('manInput').value = '';
-  // NOTE: staffName is intentionally NOT cleared — persisted for the shift
 }
 
-// ── NEW: show "last redemption" indicator when returning from form ──
 function showLastRedemptionInfo() {
   if (!lastRedeemedCoupon) return;
   var el = g('lastRedemption');
   el.innerHTML = '✅ <b>Last redeemed:</b> ' + lastRedeemedCoupon + ' &nbsp;<span style="color:#aaa">— ready for next customer</span>';
   el.className = 'last-redemption show';
-  // Auto-hide after 8 seconds
-  setTimeout(function() {
-    el.className = 'last-redemption';
-  }, 8000);
+  setTimeout(function() { el.className = 'last-redemption'; }, 8000);
 }
 
-// ── NEW: staff name management ──────────────────────────────────────
 function onStaffNameInput() {
   var hasName = g('staffName').value.trim().length > 0;
   g('clearNameBtn').style.display = hasName ? 'inline-block' : 'none';
@@ -263,14 +250,12 @@ function clearStaffName() {
   g('clearNameBtn').style.display = 'none';
   g('staffName').focus();
 }
-// ────────────────────────────────────────────────────────────────────
 
 function smsg(t, c) { var e = g('smsg'); e.textContent = t; e.className = 'msg ' + c; }
 function rmsg(t, c)  { var e = g('rmsg');  e.textContent = t; e.className = 'msg ' + c; }
 
 function setupBarcodeDetector(callback) {
   if (typeof BarcodeDetector === 'undefined') {
-    console.log('[Scanner] BarcodeDetector not supported, will use jsQR');
     useNativeDetector = false;
     callback();
     return;
@@ -279,14 +264,11 @@ function setupBarcodeDetector(callback) {
     if (formats.indexOf('qr_code') !== -1) {
       barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
       useNativeDetector = true;
-      console.log('[Scanner] Using native BarcodeDetector (fast)');
     } else {
-      console.log('[Scanner] BarcodeDetector exists but no qr_code, using jsQR');
       useNativeDetector = false;
     }
     callback();
   }).catch(function(e) {
-    console.log('[Scanner] BarcodeDetector setup failed: ' + e.message);
     useNativeDetector = false;
     callback();
   });
@@ -406,7 +388,6 @@ function doScan() {
     barcodeDetector.detect(v).then(function(codes) {
       if (codes && codes.length > 0) handleScanResult(codes[0].rawValue);
     }).catch(function(e) {
-      console.log('[Scanner] Native detect failed, switching to jsQR: ' + e.message);
       useNativeDetector = false;
       g('engineBadge').textContent = 'Standard mode';
     });
@@ -448,7 +429,6 @@ function handleScanResult(rawData) {
   if (!validId) {
     if (now - lastRejectTime > 1500) {
       lastRejectTime = now;
-      console.log('[Scanner] Rejected non-coupon QR: ' + String(rawData).substring(0, 80));
       flashRejectFeedback();
     }
     return;
@@ -504,20 +484,15 @@ function tapFocus(e) {
   videoTrack.applyConstraints({ advanced:[{ focusMode:'single-shot', pointOfInterest:{x:x,y:y} }] }).catch(function(){});
 }
 
-// ── UPDATED: pageshow handler — show last redemption when returning ──
 window.addEventListener('pageshow', function(e) {
   if (e.persisted) {
-    // Coming back via back button — UI was already reset before leaving
-    // Just make sure everything is clean and show the last redemption indicator
     resetForNextCustomer();
     if (lastRedeemedCoupon && (Date.now() - lastRedeemedTime) < 60000) {
-      // Only show if redemption was within last minute (likely just came back)
       showLastRedemptionInfo();
     }
   }
 });
 
-// On initial load, set up the clear button visibility
 window.addEventListener('load', function() {
   onStaffNameInput();
 });
